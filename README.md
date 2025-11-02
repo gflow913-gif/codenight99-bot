@@ -1,6 +1,6 @@
-# 99 Days in Forest - Discord Code Scraper Bot
+# 99 Nights in Forest - Discord Code Scraper Bot
 
-A Discord bot that automatically searches the web for new "99 Days in Forest" (Roblox game) redeem codes and notifies you when they're found.
+A Discord bot that automatically searches the web for new "99 Nights in Forest" (Roblox game) redeem codes and notifies you when they're found.
 
 ## Features
 
@@ -52,7 +52,7 @@ The bot will automatically:
 
 ## How It Works
 
-1. **Search**: Queries DuckDuckGo for "99 Days in Forest codes"
+1. **Search**: Queries DuckDuckGo for "99 Nights in Forest codes"
 2. **Fallback**: If DuckDuckGo is rate-limited, switches to scraping known gaming code websites
 3. **Scrape**: Fetches top 5 results and parses HTML with Cheerio
 4. **Extract**: Finds codes matching `/([A-Z0-9]{5,15})/g` near keywords like "Code", "Reward", "Gift"

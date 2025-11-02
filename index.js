@@ -116,11 +116,11 @@ async function scrapeFallbackUrls() {
   console.log('🔄 Using fallback: scraping known gaming code websites...');
   
   const fallbackUrls = [
-    'https://www.pcgamer.com/games/roblox/99-days-in-forest-codes/',
-    'https://beebom.com/99-days-in-forest-codes/',
-    'https://progameguides.com/roblox/99-days-in-forest-codes/',
-    'https://gamerant.com/roblox-99-days-in-forest-codes/',
-    'https://www.pockettactics.com/99-days-in-forest-codes'
+    'https://www.pcgamer.com/games/roblox/99-nights-in-forest-codes/',
+    'https://beebom.com/99-nights-in-forest-codes/',
+    'https://progameguides.com/roblox/99-nights-in-forest-codes/',
+    'https://gamerant.com/roblox/99-nights-in-forest-codes/',
+    'https://www.pockettactics.com/99-nights-in-forest-codes'
   ];
   
   const allCodes = [];
@@ -137,13 +137,13 @@ async function scrapeFallbackUrls() {
 
 // Search for codes on the web
 async function searchForCodes() {
-  console.log('\n🔎 Starting web search for "99 Days in Forest codes"...');
+  console.log('\n🔎 Starting web search for "99 Nights in Forest codes"...');
   
   try {
     // Add delay before search to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const searchResults = await search('99 Days in Forest codes', {
+    const searchResults = await search('99 Nights in Forest codes', {
       safeSearch: 0
     });
     
@@ -232,7 +232,7 @@ async function sendNotifications(newCodes) {
   try {
     // Prepare message
     const codeList = newCodes.map(c => `**${c.code}** - ${c.source}`).join('\n');
-    const message = `🎮 **New 99 Days in Forest Codes Found!**\n\n${codeList}\n\n*Found at: ${new Date().toLocaleString()}*`;
+    const message = `🎮 **New 99 Nights in Forest Codes Found!**\n\n${codeList}\n\n*Found at: ${new Date().toLocaleString()}*`;
     
     // Send to channel
     try {
