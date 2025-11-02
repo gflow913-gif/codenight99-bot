@@ -4,12 +4,12 @@ A Discord bot that automatically searches the web for new "99 Nights in Forest" 
 
 ## Features
 
-- 🔍 **Automated Web Scraping**: Uses DuckDuckGo search to find code-related pages
+- 🔍 **Google Search via Serper.dev**: Uses Serper API for reliable Google search results
 - 🤖 **Smart Code Detection**: Extracts codes matching pattern `[A-Z0-9]{5,15}` with context validation
-- 💾 **Duplicate Prevention**: Stores found codes in `codes.json` to avoid repeats
+- 💾 **Duplicate Prevention**: Stores found codes in `codes.json` to avoid repeats (even after restarts)
 - 📢 **Discord Notifications**: Posts new codes to a channel and DMs a specific user
 - ⏰ **Automatic Scanning**: Runs on startup and every 3 hours
-- 🎯 **Manual Trigger**: Use `!check` command to scan on demand
+- 🎯 **Slash Commands**: `/check` for manual scans, `/scan <url>` for specific URLs
 - 📊 **Clear Logging**: Comprehensive console output for all activities
 
 ## Setup
@@ -19,10 +19,16 @@ A Discord bot that automatically searches the web for new "99 Nights in Forest" 
 Set the following environment variables (in .env file or your hosting platform):
 
 - `DISCORD_TOKEN` - Your Discord bot token (required)
-- `GUILD_ID` - Your Discord server ID (optional)
+- `SERPER_KEY` - Your Serper.dev API key for Google Search (required)
 - `CHANNEL_ID` - Channel ID where new codes will be posted (required)
 - `USER_ID` - User ID who will receive DM notifications (required)
+- `GUILD_ID` - Your Discord server ID (optional)
 - `SESSION_SECRET` - Secret key for session management (optional)
+
+**Get Serper API Key:**
+1. Go to [Serper.dev](https://serper.dev)
+2. Sign up for a free account
+3. Copy your API key and set it as `SERPER_KEY`
 
 ### 2. Discord Bot Setup
 
@@ -52,20 +58,21 @@ The bot will automatically:
 
 ## How It Works
 
-1. **Search**: Queries DuckDuckGo for "99 Nights in Forest codes"
-2. **Fallback**: If DuckDuckGo is rate-limited, switches to scraping known gaming code websites
-3. **Scrape**: Fetches top 5 results and parses HTML with Cheerio
-4. **Extract**: Finds codes matching `/([A-Z0-9]{5,15})/g` near keywords like "Code", "Reward", "Gift"
-5. **Filter**: Compares against stored codes in `codes.json` to identify new ones (prevents duplicates even after restart)
-6. **Notify**: Sends new codes to Discord channel and user DM
-7. **Store**: Saves all codes to `codes.json` for persistent duplicate prevention
+1. **Search**: Queries Google via Serper.dev API for "99 Nights in Forest codes"
+2. **Scrape**: Fetches top 5 results and parses HTML with Cheerio
+3. **Extract**: Finds codes matching `/([A-Z0-9]{5,15})/g` near keywords like "Code", "Reward", "Gift"
+4. **Filter**: Compares against stored codes in `codes.json` to identify new ones (prevents duplicates even after restart)
+5. **Notify**: Sends new codes to Discord channel and user DM
+6. **Store**: Saves all codes to `codes.json` for persistent duplicate prevention
 
 ## Dependencies
 
 - `discord.js` (v14.15.3) - Discord bot framework
-- `duck-duck-scrape` (v2.1.0) - DuckDuckGo search without API key
 - `cheerio` (v1.0.0) - HTML parsing and scraping
 - `node-fetch` (v3.3.2) - HTTP requests
+
+**External APIs:**
+- Serper.dev - Google Search API (requires API key)
 
 Dependencies are automatically installed on startup.
 
