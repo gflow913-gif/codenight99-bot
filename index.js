@@ -74,9 +74,12 @@ function saveServerConfigs(servers) {
 
 // Extract potential codes from text
 function extractCodes(text, url) {
-  const codePattern = /([A-Z0-9]{5,15})/g;
-  const keywords = ['code', 'reward', 'gift', 'redeem'];
-  const blacklist = ['HTTP', 'HTTPS', 'FALSE', 'TRUE', 'NULL', 'UNDEFINED', 'ERROR', 'SUCCESS', 'FAILED', 'ADMIN', 'LOGIN', 'LOGOUT'];
+  // Pattern 1: Date-based codes (14 digits like 20250927230051)
+  // Pattern 2: All uppercase letter codes (5-15 chars like ROBLOX, FOREST99)
+  // Pattern 3: Mixed alphanumeric uppercase (6-15 chars)
+  const codePattern = /\b(\d{14}|[A-Z]{5,15}|[A-Z0-9]{6,15})\b/g;
+  const keywords = ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems'];
+  const blacklist = ['HTTP', 'HTTPS', 'FALSE', 'TRUE', 'NULL', 'UNDEFINED', 'ERROR', 'SUCCESS', 'FAILED', 'ADMIN', 'LOGIN', 'LOGOUT', 'BUTTON', 'CLICK', 'ENTER', 'SUBMIT', 'CANCEL', 'CONFIRM', 'DELETE', 'UPDATE', 'CREATE', 'TWITTER', 'YOUTUBE', 'DISCORD', 'FACEBOOK', 'INSTAGRAM', 'GITHUB', 'GOOGLE', 'CHROME', 'FIREFOX', 'SAFARI', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
   const potentialCodes = [];
   
   // Split text into words for context checking
@@ -93,8 +96,15 @@ function extractCodes(text, url) {
       
       if (hasKeyword) {
         matches.forEach(code => {
-          // Filter out blacklisted terms and duplicates
-          if (!potentialCodes.includes(code) && !blacklist.includes(code.toUpperCase())) {
+          // Filter out blacklisted terms, duplicates, and too-common patterns
+          const isBlacklisted = blacklist.includes(code.toUpperCase());
+          const isDuplicate = potentialCodes.includes(code);
+          const isValidLength = code.length >= 5 && code.length <= 15;
+          
+          // Additional validation: skip if it's all the same character repeated
+          const isRepeating = /^(.)\1+$/.test(code);
+          
+          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating) {
             potentialCodes.push(code);
           }
         });
