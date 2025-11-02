@@ -76,6 +76,7 @@ function saveServerConfigs(servers) {
 function extractCodes(text, url) {
   const codePattern = /([A-Z0-9]{5,15})/g;
   const keywords = ['code', 'reward', 'gift', 'redeem'];
+  const blacklist = ['HTTP', 'HTTPS', 'FALSE', 'TRUE', 'NULL', 'UNDEFINED', 'ERROR', 'SUCCESS', 'FAILED', 'ADMIN', 'LOGIN', 'LOGOUT'];
   const potentialCodes = [];
   
   // Split text into words for context checking
@@ -92,7 +93,8 @@ function extractCodes(text, url) {
       
       if (hasKeyword) {
         matches.forEach(code => {
-          if (!potentialCodes.includes(code)) {
+          // Filter out blacklisted terms and duplicates
+          if (!potentialCodes.includes(code) && !blacklist.includes(code.toUpperCase())) {
             potentialCodes.push(code);
           }
         });
