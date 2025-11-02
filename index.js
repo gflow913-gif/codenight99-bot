@@ -1,5 +1,4 @@
 import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
-import { search } from 'duck-duck-scrape';
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -11,6 +10,7 @@ const CONFIG = {
   CHANNEL_ID: process.env.CHANNEL_ID,
   USER_ID: process.env.USER_ID,
   SESSION_SECRET: process.env.SESSION_SECRET,
+  SERPER_KEY: process.env.SERPER_KEY,
   SCAN_INTERVAL: 3 * 60 * 60 * 1000, // 3 hours in milliseconds
   CODES_FILE: 'codes.json'
 };
@@ -111,56 +111,52 @@ async function scrapeUrl(url) {
   }
 }
 
-// Fallback: scrape known gaming code websites directly
-async function scrapeFallbackUrls() {
-  console.log('🔄 Using fallback: scraping known gaming code websites...');
+// Search for codes using Serper.dev Google Search API
+async function searchForCodes() {
+  console.log('\n🔎 Starting Google Search for "99 Nights in Forest codes" via Serper.dev...');
   
-  const fallbackUrls = [
-    'https://www.pcgamer.com/games/roblox/99-nights-in-forest-codes/',
-    'https://beebom.com/99-nights-in-forest-codes/',
-    'https://progameguides.com/roblox/99-nights-in-forest-codes/',
-    'https://gamerant.com/roblox/99-nights-in-forest-codes/',
-    'https://www.pockettactics.com/99-nights-in-forest-codes'
-  ];
-  
-  const allCodes = [];
-  
-  for (const url of fallbackUrls) {
-    const codes = await scrapeUrl(url);
-    allCodes.push(...codes);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  if (!CONFIG.SERPER_KEY) {
+    console.error('❌ SERPER_KEY not configured! Cannot perform search.');
+    return [];
   }
   
-  console.log(`✅ Fallback scraping extracted ${allCodes.length} potential codes`);
-  return allCodes;
-}
-
-// Search for codes on the web
-async function searchForCodes() {
-  console.log('\n🔎 Starting web search for "99 Nights in Forest codes"...');
-  
   try {
-    // Add delay before search to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const searchResults = await search('99 Nights in Forest codes', {
-      safeSearch: 0
+    // Call Serper.dev API
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': CONFIG.SERPER_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        q: '99 Nights in Forest codes',
+        num: 10
+      })
     });
     
-    if (!searchResults.results || searchResults.results.length === 0) {
-      console.log('⚠️ No search results found, trying fallback URLs...');
-      return await scrapeFallbackUrls();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Serper API error (${response.status}): ${errorText}`);
+      return [];
     }
     
-    console.log(`📋 Found ${searchResults.results.length} search results`);
+    const data = await response.json();
+    
+    if (!data.organic || data.organic.length === 0) {
+      console.log('⚠️ No search results found from Serper API');
+      return [];
+    }
+    
+    console.log(`📋 Found ${data.organic.length} search results from Google`);
     
     // Take top 5 results
-    const topResults = searchResults.results.slice(0, 5);
+    const topResults = data.organic.slice(0, 5);
     const allCodes = [];
     
     for (const result of topResults) {
-      if (result.url) {
-        const codes = await scrapeUrl(result.url);
+      if (result.link) {
+        console.log(`   🔗 Scraping: ${result.title}`);
+        const codes = await scrapeUrl(result.link);
         allCodes.push(...codes);
         
         // Add delay between requests to be polite
@@ -172,10 +168,6 @@ async function searchForCodes() {
     return allCodes;
   } catch (error) {
     console.error('❌ Search error:', error.message);
-    if (error.message.includes('anomaly') || error.message.includes('too quickly')) {
-      console.log('💡 DuckDuckGo rate limiting detected, switching to fallback URLs...');
-      return await scrapeFallbackUrls();
-    }
     return [];
   }
 }
