@@ -75,11 +75,12 @@ function saveServerConfigs(servers) {
 // Extract potential codes from text
 function extractCodes(text, url) {
   // Pattern 1: Date-based codes (14 digits like 20250927230051)
-  // Pattern 2: All uppercase letter codes (5-15 chars like ROBLOX, FOREST99)
-  // Pattern 3: Mixed alphanumeric uppercase (6-15 chars)
-  const codePattern = /\b(\d{14}|[A-Z]{5,15}|[A-Z0-9]{6,15})\b/g;
-  const keywords = ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems'];
-  const blacklist = ['HTTP', 'HTTPS', 'FALSE', 'TRUE', 'NULL', 'UNDEFINED', 'ERROR', 'SUCCESS', 'FAILED', 'ADMIN', 'LOGIN', 'LOGOUT', 'BUTTON', 'CLICK', 'ENTER', 'SUBMIT', 'CANCEL', 'CONFIRM', 'DELETE', 'UPDATE', 'CREATE', 'TWITTER', 'YOUTUBE', 'DISCORD', 'FACEBOOK', 'INSTAGRAM', 'GITHUB', 'GOOGLE', 'CHROME', 'FIREFOX', 'SAFARI', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+  // Pattern 2: Lowercase letter codes (5-15 chars like afterparty, fishing, happyhalloween)
+  // Pattern 3: Uppercase letter codes (5-15 chars like ROBLOX)
+  // Pattern 4: Mixed alphanumeric (6-15 chars, case insensitive)
+  const codePattern = /\b(\d{14}|[a-z]{5,15}|[A-Z]{5,15}|[a-zA-Z0-9]{6,15})\b/gi;
+  const keywords = ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest'];
+  const blacklist = ['http', 'https', 'false', 'true', 'null', 'undefined', 'error', 'success', 'failed', 'admin', 'login', 'logout', 'button', 'click', 'enter', 'submit', 'cancel', 'confirm', 'delete', 'update', 'create', 'twitter', 'youtube', 'discord', 'facebook', 'instagram', 'github', 'google', 'chrome', 'firefox', 'safari', 'january', 'february', 'march', 'april', 'august', 'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'forest', 'nights', 'roblox', 'games', 'please', 'thank', 'welcome', 'hello', 'world', 'server', 'client', 'player', 'cookie', 'session', 'script', 'function', 'return', 'console', 'window', 'document', 'article', 'section', 'header', 'footer', 'content', 'title', 'image', 'video', 'audio', 'table', 'border', 'mobile', 'desktop', 'tablet', 'android', 'iphone', 'windows', 'linux', 'macos'];
   const potentialCodes = [];
   
   // Split text into words for context checking
@@ -97,14 +98,17 @@ function extractCodes(text, url) {
       if (hasKeyword) {
         matches.forEach(code => {
           // Filter out blacklisted terms, duplicates, and too-common patterns
-          const isBlacklisted = blacklist.includes(code.toUpperCase());
+          const isBlacklisted = blacklist.includes(code.toLowerCase());
           const isDuplicate = potentialCodes.includes(code);
           const isValidLength = code.length >= 5 && code.length <= 15;
           
           // Additional validation: skip if it's all the same character repeated
           const isRepeating = /^(.)\1+$/.test(code);
           
-          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating) {
+          // Skip common web words that aren't codes
+          const isCommonWord = ['about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help'].includes(code.toLowerCase());
+          
+          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating && !isCommonWord) {
             potentialCodes.push(code);
           }
         });
