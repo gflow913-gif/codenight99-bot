@@ -8,8 +8,9 @@ A Discord bot that automatically searches the web for new "99 Nights in Forest" 
 - 🤖 **Smart Code Detection**: Extracts codes matching pattern `[A-Z0-9]{5,15}` with context validation
 - 💾 **Duplicate Prevention**: Stores found codes in `codes.json` to avoid repeats (even after restarts)
 - 📢 **Discord Notifications**: Posts new codes to a channel and DMs a specific user
-- ⏰ **Automatic Scanning**: Runs on startup and every 3 hours
-- 🎯 **Slash Commands**: `/check` for manual scans, `/scan <url>` for specific URLs
+- 🌐 **Multi-Server Support**: Server owners can configure their own channels with `/thought`
+- ⏰ **Automatic Scanning**: Runs on startup and every 1 hour
+- 🎯 **Slash Commands**: `/check` for manual scans, `/scan <url>` for specific URLs, `/thought` for server setup
 - 📊 **Clear Logging**: Comprehensive console output for all activities
 
 ## Setup
@@ -51,10 +52,21 @@ Enable Developer Mode in Discord (Settings > Advanced > Developer Mode), then:
 
 ## Usage
 
+**For Bot Owner:**
 The bot will automatically:
 - Scan for codes when it starts
-- Scan every 3 hours thereafter
-- Respond to `/check` slash command for manual scans
+- Scan every 1 hour thereafter
+- Post to your configured channel and DM you
+
+**For Other Servers:**
+Server owners can use `/thought` command to:
+- Set up automatic code notifications in their server
+- Choose which channel receives the codes
+- Get codes every 1 hour automatically
+
+**Everyone Can:**
+- Use `/check` to trigger a manual scan
+- Use `/scan <url>` to check a specific URL for codes
 
 ## How It Works
 
@@ -80,15 +92,22 @@ Dependencies are automatically installed on startup.
 
 The bot uses Discord slash commands (just type `/` to see them):
 
-- `/check` - Run automatic scan for new codes (all sources)
-- `/scan <url>` - Scan a specific URL for codes (any user can use this)
+- `/check` - Run automatic scan for new codes (anyone can use)
+- `/scan <url>` - Scan a specific URL for codes (anyone can use)
+- `/thought` - Setup notifications for your server (server owner only)
 - `/help` - Show all available commands
 
 **How to use:**
 1. Type `/` in Discord
 2. Select a command from the autocomplete list
-3. Fill in any required parameters (like URL for `/scan`)
+3. Fill in any required parameters (like channel for `/thought` or URL for `/scan`)
 4. Press Enter!
+
+**Server Owner Setup:**
+1. Invite the bot to your server
+2. Use `/thought` command
+3. Select the channel where you want codes posted
+4. Done! Your server will now receive automatic updates every 1 hour
 
 ## Logs
 

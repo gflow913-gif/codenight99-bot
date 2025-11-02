@@ -11,13 +11,18 @@ A Discord bot built with Node.js that automatically searches the web for new "99
 - **Game**: 99 Nights in Forest (Roblox)
 
 ## Recent Changes
-- November 2, 2025: Project migrated to Replit environment
+- November 2, 2025: Project migrated to Replit environment with multi-server support
   - Created Discord bot with discord.js v14
   - Implemented Serper.dev Google Search API for reliable code discovery
   - Added web scraping with cheerio for code extraction
   - Added code extraction with regex pattern `/([A-Z0-9]{5,15})/g`
   - Implemented persistent storage in `codes.json` for duplicate prevention
-  - Added automatic scanning (startup + every 3 hours)
+  - **Updated scan interval to 1 hour** (from 3 hours) for faster code discovery
+  - **Added multi-server support** with `servers.json` configuration storage
+  - **Added `/thought` command** for server owners to set up their own notifications
+  - Added permission checking (server owner only for `/thought`)
+  - Updated notification system to support multiple servers simultaneously
+  - Added automatic scanning (startup + every 1 hour)
   - Added manual scan trigger via `/check` slash command
   - Configured Discord notifications (channel + DM)
   - Added `/scan <url>` slash command for user-requested URL scanning
@@ -38,12 +43,15 @@ A Discord bot built with Node.js that automatically searches the web for new "99
 1. Automated Google search using Serper.dev API for reliable results
 2. HTML parsing with cheerio to extract codes from top 5 search results
 3. Smart code detection with context validation (keywords: Code, Reward, Gift)
-4. Duplicate prevention via persistent storage
-5. Scheduled scanning (3-hour intervals)
-6. Discord integration for notifications
-7. Manual scan trigger slash command (`/check`)
-8. User-friendly URL scanning slash command (`/scan <url>`)
-9. Help slash command for command list (`/help`)
+4. Duplicate prevention via persistent storage in `codes.json`
+5. **Multi-server support** - Server owners can configure their own channels
+6. **Scheduled scanning (1-hour intervals)** for faster code discovery
+7. Discord integration for notifications (main channel + DM + all configured servers)
+8. Server owner permission system for `/thought` command
+9. Manual scan trigger slash command (`/check`)
+10. User-friendly URL scanning slash command (`/scan <url>`)
+11. Server setup slash command (`/thought`) for server owners
+12. Help slash command for command list (`/help`)
 
 ### Dependencies
 - `discord.js` (^14.15.3) - Discord bot framework
@@ -65,6 +73,7 @@ A Discord bot built with Node.js that automatically searches the web for new "99
 ├── index.js          # Main bot application
 ├── package.json      # NPM dependencies and config
 ├── codes.json        # Stored codes database
+├── servers.json      # Multi-server configurations
 ├── .gitignore        # Git ignore rules
 ├── README.md         # User documentation
 └── replit.md         # Project memory/documentation

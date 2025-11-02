@@ -11,8 +11,9 @@ const CONFIG = {
   USER_ID: process.env.USER_ID,
   SESSION_SECRET: process.env.SESSION_SECRET,
   SERPER_KEY: process.env.SERPER_KEY,
-  SCAN_INTERVAL: 3 * 60 * 60 * 1000, // 3 hours in milliseconds
-  CODES_FILE: 'codes.json'
+  SCAN_INTERVAL: 1 * 60 * 60 * 1000, // 1 hour in milliseconds
+  CODES_FILE: 'codes.json',
+  SERVERS_FILE: 'servers.json'
 };
 
 // Initialize Discord client
@@ -45,6 +46,29 @@ function saveStoredCodes(codes) {
     console.log(`💾 Saved ${codes.length} codes to ${CONFIG.CODES_FILE}`);
   } catch (error) {
     console.error('❌ Error saving codes:', error.message);
+  }
+}
+
+// Load server configurations
+function loadServerConfigs() {
+  try {
+    if (fs.existsSync(CONFIG.SERVERS_FILE)) {
+      const data = fs.readFileSync(CONFIG.SERVERS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('❌ Error loading server configs:', error.message);
+  }
+  return [];
+}
+
+// Save server configurations
+function saveServerConfigs(servers) {
+  try {
+    fs.writeFileSync(CONFIG.SERVERS_FILE, JSON.stringify(servers, null, 2));
+    console.log(`💾 Saved ${servers.length} server configuration(s)`);
+  } catch (error) {
+    console.error('❌ Error saving server configs:', error.message);
   }
 }
 
@@ -216,36 +240,52 @@ async function checkForNewCodes() {
 
 // Send notifications to Discord
 async function sendNotifications(newCodes) {
-  if (!CONFIG.CHANNEL_ID || !CONFIG.USER_ID) {
-    console.log('⚠️ CHANNEL_ID or USER_ID not configured, skipping notifications');
-    return;
-  }
-  
   try {
     // Prepare clean message with codes only
     const codeList = newCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
     const message = `🎮 **New 99 Nights in Forest Codes!**\n\n${codeList}\n\n✨ **Total: ${newCodes.length} new code${newCodes.length > 1 ? 's' : ''}**\n⏰ Found at: ${new Date().toLocaleString()}`;
     
-    // Send to channel
-    try {
-      const channel = await client.channels.fetch(CONFIG.CHANNEL_ID);
-      if (channel && channel.isTextBased()) {
-        await channel.send(message);
-        console.log('✅ Posted new codes to channel');
+    // Send to main channel (if configured)
+    if (CONFIG.CHANNEL_ID) {
+      try {
+        const channel = await client.channels.fetch(CONFIG.CHANNEL_ID);
+        if (channel && channel.isTextBased()) {
+          await channel.send(message);
+          console.log('✅ Posted new codes to main channel');
+        }
+      } catch (error) {
+        console.error('❌ Error posting to main channel:', error.message);
       }
-    } catch (error) {
-      console.error('❌ Error posting to channel:', error.message);
     }
     
-    // Send DM to user
-    try {
-      const user = await client.users.fetch(CONFIG.USER_ID);
-      if (user) {
-        await user.send(message);
-        console.log('✅ Sent DM to user');
+    // Send DM to main user (if configured)
+    if (CONFIG.USER_ID) {
+      try {
+        const user = await client.users.fetch(CONFIG.USER_ID);
+        if (user) {
+          await user.send(message);
+          console.log('✅ Sent DM to main user');
+        }
+      } catch (error) {
+        console.error('❌ Error sending DM to main user:', error.message);
       }
-    } catch (error) {
-      console.error('❌ Error sending DM:', error.message);
+    }
+    
+    // Send to all configured servers
+    const serverConfigs = loadServerConfigs();
+    if (serverConfigs.length > 0) {
+      console.log(`📡 Sending to ${serverConfigs.length} configured server(s)...`);
+      for (const config of serverConfigs) {
+        try {
+          const channel = await client.channels.fetch(config.channelId);
+          if (channel && channel.isTextBased()) {
+            await channel.send(message);
+            console.log(`✅ Posted to server: ${config.guildId} (${config.guildName})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error posting to server ${config.guildId}:`, error.message);
+        }
+      }
     }
   } catch (error) {
     console.error('❌ Error in notifications:', error.message);
@@ -264,6 +304,13 @@ async function registerCommands(clientId) {
       .addStringOption(option =>
         option.setName('url')
           .setDescription('The URL to scan for codes')
+          .setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('thought')
+      .setDescription('Setup code notifications for your server (Server Owner only)')
+      .addChannelOption(option =>
+        option.setName('channel')
+          .setDescription('The channel where codes will be posted')
           .setRequired(true)),
     new SlashCommandBuilder()
       .setName('help')
@@ -288,7 +335,7 @@ async function registerCommands(clientId) {
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`\n✅ Discord bot logged in as ${readyClient.user.tag}`);
   console.log(`📡 Connected to ${readyClient.guilds.cache.size} server(s)`);
-  console.log(`⏰ Scan interval: every 3 hours\n`);
+  console.log(`⏰ Scan interval: every 1 hour\n`);
   
   // Register slash commands
   await registerCommands(readyClient.user.id);
@@ -298,7 +345,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   
   // Set up periodic scanning
   setInterval(checkForNewCodes, CONFIG.SCAN_INTERVAL);
-  console.log('⏱️ Periodic scanning activated (every 3 hours)');
+  console.log('⏱️ Periodic scanning activated (every 1 hour)');
 });
 
 // Handle slash commands
@@ -348,14 +395,92 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  // /thought - Setup server notifications (Server Owner only)
+  if (commandName === 'thought') {
+    const guild = interaction.guild;
+    
+    if (!guild) {
+      await interaction.reply('❌ This command can only be used in a server!');
+      return;
+    }
+    
+    // Check if user is the server owner
+    if (interaction.user.id !== guild.ownerId) {
+      await interaction.reply('❌ Only the server owner can use this command!');
+      return;
+    }
+    
+    const channel = interaction.options.getChannel('channel');
+    
+    if (!channel.isTextBased()) {
+      await interaction.reply('❌ Please select a text channel!');
+      return;
+    }
+    
+    console.log(`\n💭 Server setup requested by ${interaction.user.tag} (${guild.name})`);
+    
+    try {
+      const serverConfigs = loadServerConfigs();
+      
+      // Check if server is already configured
+      const existingIndex = serverConfigs.findIndex(s => s.guildId === guild.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing configuration
+        serverConfigs[existingIndex] = {
+          guildId: guild.id,
+          guildName: guild.name,
+          channelId: channel.id,
+          channelName: channel.name,
+          ownerId: guild.ownerId,
+          configuredAt: new Date().toISOString()
+        };
+        saveServerConfigs(serverConfigs);
+        
+        await interaction.reply(`✅ **Configuration Updated!**\n\n` +
+          `📡 Server: **${guild.name}**\n` +
+          `📢 Channel: ${channel}\n` +
+          `🎮 New codes will be posted here automatically every hour!\n\n` +
+          `*Your previous configuration has been updated.*`);
+        
+        console.log(`✅ Updated configuration for server: ${guild.name}`);
+      } else {
+        // Add new configuration
+        serverConfigs.push({
+          guildId: guild.id,
+          guildName: guild.name,
+          channelId: channel.id,
+          channelName: channel.name,
+          ownerId: guild.ownerId,
+          configuredAt: new Date().toISOString()
+        });
+        saveServerConfigs(serverConfigs);
+        
+        await interaction.reply(`✅ **Setup Complete!**\n\n` +
+          `📡 Server: **${guild.name}**\n` +
+          `📢 Channel: ${channel}\n` +
+          `🎮 New 99 Nights in Forest codes will be posted here automatically!\n\n` +
+          `⏰ Scans run every 1 hour\n` +
+          `🔍 You can also use \`/check\` and \`/scan\` commands anytime!`);
+        
+        console.log(`✅ New configuration added for server: ${guild.name}`);
+      }
+    } catch (error) {
+      await interaction.reply(`❌ Error setting up notifications: ${error.message}`);
+      console.error(`❌ Error setting up server configuration: ${error.message}`);
+    }
+    return;
+  }
+
   // /help - Show commands
   if (commandName === 'help') {
     const helpMessage = `🤖 **99 Nights in Forest Bot - Slash Commands**\n\n` +
-      `\`/check\` - Run automatic scan for new codes\n` +
-      `\`/scan <url>\` - Scan a specific URL for codes\n` +
+      `\`/check\` - Run automatic scan for new codes (anyone can use)\n` +
+      `\`/scan <url>\` - Scan a specific URL for codes (anyone can use)\n` +
+      `\`/thought\` - Setup notifications for your server (server owner only)\n` +
       `\`/help\` - Show this help message\n\n` +
-      `💡 **Examples:**\n` +
-      `Type \`/\` and select a command from the list!`;
+      `⏰ **Auto Scan:** Every 1 hour\n` +
+      `💡 **Examples:** Type \`/\` and select a command from the list!`;
     await interaction.reply(helpMessage);
     return;
   }
