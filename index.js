@@ -52,15 +52,6 @@ const client = new Client({
   ]
 });
 
-// Load stored codes from file
-function loadStoredCodes() {
-  try {
-    if (fs.existsSync(CONFIG.CODES_FILE)) {
-      const data = fs.readFileSync(CONFIG.CODES_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-
-
 // Helper function to get date N days ago in YYYY-MM-DD format
 function getDateDaysAgo(days) {
   const date = new Date();
@@ -68,6 +59,13 @@ function getDateDaysAgo(days) {
   return date.toISOString().split('T')[0];
 }
 
+// Load stored codes from file
+function loadStoredCodes() {
+  try {
+    if (fs.existsSync(CONFIG.CODES_FILE)) {
+      const data = fs.readFileSync(CONFIG.CODES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
   } catch (error) {
     console.error('❌ Error loading stored codes:', error.message);
   }
