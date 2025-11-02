@@ -1,6 +1,6 @@
-# 99 Nights in the Forest - Discord Code Scraper Bot
+# 99 Days in Forest - Discord Code Scraper Bot
 
-A Discord bot that automatically searches the web for new "99 Nights in the Forest" (Roblox game) redeem codes and notifies you when they're found.
+A Discord bot that automatically searches the web for new "99 Days in Forest" (Roblox game) redeem codes and notifies you when they're found.
 
 ## Features
 
@@ -16,12 +16,13 @@ A Discord bot that automatically searches the web for new "99 Nights in the Fore
 
 ### 1. Environment Variables
 
-Set the following environment variables in your Replit Secrets:
+Set the following environment variables (in .env file or your hosting platform):
 
 - `DISCORD_TOKEN` - Your Discord bot token (required)
 - `GUILD_ID` - Your Discord server ID (optional)
 - `CHANNEL_ID` - Channel ID where new codes will be posted (required)
 - `USER_ID` - User ID who will receive DM notifications (required)
+- `SESSION_SECRET` - Secret key for session management (optional)
 
 ### 2. Discord Bot Setup
 
@@ -51,13 +52,13 @@ The bot will automatically:
 
 ## How It Works
 
-1. **Search**: Queries DuckDuckGo for "99 Nights in the Forest codes"
+1. **Search**: Queries DuckDuckGo for "99 Days in Forest codes"
 2. **Fallback**: If DuckDuckGo is rate-limited, switches to scraping known gaming code websites
 3. **Scrape**: Fetches top 5 results and parses HTML with Cheerio
 4. **Extract**: Finds codes matching `/([A-Z0-9]{5,15})/g` near keywords like "Code", "Reward", "Gift"
-5. **Filter**: Compares against stored codes to identify new ones
+5. **Filter**: Compares against stored codes in `codes.json` to identify new ones (prevents duplicates even after restart)
 6. **Notify**: Sends new codes to Discord channel and user DM
-7. **Store**: Saves all codes to `codes.json`
+7. **Store**: Saves all codes to `codes.json` for persistent duplicate prevention
 
 ## Dependencies
 
