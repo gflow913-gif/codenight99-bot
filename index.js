@@ -274,16 +274,65 @@ client.once(Events.ClientReady, async (readyClient) => {
   console.log('⏱️ Periodic scanning activated (every 3 hours)');
 });
 
-// Handle !check command
+// Handle commands
 client.on('messageCreate', async (message) => {
   // Ignore bot messages
   if (message.author.bot) return;
   
-  if (message.content.trim() === '!check') {
+  const content = message.content.trim();
+  
+  // !check - Automatic scan
+  if (content === '!check') {
     console.log(`\n🎯 Manual scan triggered by ${message.author.tag}`);
     await message.reply('🔍 Starting manual code scan...');
     await checkForNewCodes();
     await message.reply('✅ Manual scan complete! Check console for details.');
+    return;
+  }
+  
+  // !scan <url> - Scan specific URL
+  if (content.startsWith('!scan ')) {
+    const url = content.substring(6).trim();
+    
+    if (!url || !url.startsWith('http')) {
+      await message.reply('❌ Please provide a valid URL!\nUsage: `!scan <url>`\nExample: `!scan https://example.com/codes`');
+      return;
+    }
+    
+    console.log(`\n🔗 URL scan requested by ${message.author.tag}: ${url}`);
+    
+    try {
+      await message.reply(`🔍 Scanning URL for codes...\n${url}`);
+      
+      const foundCodes = await scrapeUrl(url);
+      
+      if (foundCodes.length > 0) {
+        const codeList = foundCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
+        const response = `✅ **Found ${foundCodes.length} code${foundCodes.length > 1 ? 's' : ''}!**\n\n${codeList}`;
+        await message.reply(response);
+        console.log(`✅ Found ${foundCodes.length} code(s) from user-provided URL`);
+      } else {
+        await message.reply('📭 No codes found on this URL.\n*Tip: Make sure the page contains codes with keywords like "Code", "Reward", or "Gift"*');
+        console.log('⚠️ No codes found from user-provided URL');
+      }
+    } catch (error) {
+      await message.reply(`❌ Error scanning URL: ${error.message}`);
+      console.error(`❌ Error scanning user-provided URL: ${error.message}`);
+    }
+    return;
+  }
+  
+  // !help - Show commands
+  if (content === '!help' || content === '!commands') {
+    const helpMessage = `🤖 **99 Nights in Forest Bot - Commands**\n\n` +
+      `\`!check\` - Run automatic scan for new codes\n` +
+      `\`!scan <url>\` - Scan a specific URL for codes\n` +
+      `\`!help\` - Show this help message\n\n` +
+      `💡 **Examples:**\n` +
+      `\`!scan https://example.com/codes\`\n` +
+      `\`!check\``;
+    await message.reply(helpMessage);
+    return;
   }
 });
 

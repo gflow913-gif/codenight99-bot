@@ -71,7 +71,16 @@ Dependencies are automatically installed on startup.
 
 ## Commands
 
-- `!check` - Manually trigger a code scan
+- `!check` - Run automatic scan for new codes (all sources)
+- `!scan <url>` - Scan a specific URL for codes (any user can use this)
+- `!help` - Show all available commands
+
+**Examples:**
+```
+!check
+!scan https://progameguides.com/roblox/99-nights-in-forest-codes/
+!help
+```
 
 ## Logs
 
