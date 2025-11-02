@@ -1,3 +1,5 @@
 node_modules/
 .env
 *.log
+codes.json
+.DS_Store
