@@ -74,8 +74,15 @@ Server owners can use `/thought` command to:
 2. **Scrape**: Fetches top 5 results and parses HTML with Cheerio
 3. **Extract**: Finds codes matching `/([A-Z0-9]{5,15})/g` near keywords like "Code", "Reward", "Gift"
 4. **Filter**: Compares against stored codes in `codes.json` to identify new ones (prevents duplicates even after restart)
-5. **Notify**: Sends new codes to Discord channel and user DM
+5. **Notify**: Sends new codes to Discord channel, user DM, and all configured servers
 6. **Store**: Saves all codes to `codes.json` for persistent duplicate prevention
+
+### Duplicate Prevention
+The bot uses `codes.json` to store all previously found codes. This means:
+- ✅ Codes are never sent twice
+- ✅ Works even after bot restarts
+- ✅ Persistent storage across all scans
+- ✅ Each code is tracked with its source and timestamp
 
 ## Dependencies
 
@@ -95,6 +102,7 @@ The bot uses Discord slash commands (just type `/` to see them):
 - `/check` - Run automatic scan for new codes (anyone can use)
 - `/scan <url>` - Scan a specific URL for codes (anyone can use)
 - `/thought` - Setup notifications for your server (server owner only)
+- `/unthought` - Remove notifications from your server (server owner only)
 - `/help` - Show all available commands
 
 **How to use:**
@@ -108,6 +116,10 @@ The bot uses Discord slash commands (just type `/` to see them):
 2. Use `/thought` command
 3. Select the channel where you want codes posted
 4. Done! Your server will now receive automatic updates every 1 hour
+
+**To Stop Notifications:**
+- Server owners can use `/unthought` to remove their server from the notification list
+- The bot will immediately stop sending messages to that server until `/thought` is used again
 
 ## Logs
 

@@ -313,6 +313,9 @@ async function registerCommands(clientId) {
           .setDescription('The channel where codes will be posted')
           .setRequired(true)),
     new SlashCommandBuilder()
+      .setName('unthought')
+      .setDescription('Remove code notifications from your server (Server Owner only)'),
+    new SlashCommandBuilder()
       .setName('help')
       .setDescription('Show all available commands')
   ].map(command => command.toJSON());
@@ -472,12 +475,60 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  // /unthought - Remove server notifications (Server Owner only)
+  if (commandName === 'unthought') {
+    const guild = interaction.guild;
+    
+    if (!guild) {
+      await interaction.reply('❌ This command can only be used in a server!');
+      return;
+    }
+    
+    // Check if user is the server owner
+    if (interaction.user.id !== guild.ownerId) {
+      await interaction.reply('❌ Only the server owner can use this command!');
+      return;
+    }
+    
+    console.log(`\n🗑️ Server removal requested by ${interaction.user.tag} (${guild.name})`);
+    
+    try {
+      const serverConfigs = loadServerConfigs();
+      const existingIndex = serverConfigs.findIndex(s => s.guildId === guild.id);
+      
+      if (existingIndex >= 0) {
+        // Remove the configuration
+        const removedConfig = serverConfigs[existingIndex];
+        serverConfigs.splice(existingIndex, 1);
+        saveServerConfigs(serverConfigs);
+        
+        await interaction.reply(`✅ **Configuration Removed!**\n\n` +
+          `📡 Server: **${guild.name}**\n` +
+          `🔕 Code notifications have been disabled for this server.\n\n` +
+          `*You can set it up again anytime using \`/thought\`*`);
+        
+        console.log(`✅ Removed configuration for server: ${guild.name}`);
+      } else {
+        await interaction.reply(`ℹ️ **Not Configured**\n\n` +
+          `This server doesn't have code notifications set up.\n\n` +
+          `Use \`/thought\` to set up automatic notifications!`);
+        
+        console.log(`⚠️ Server ${guild.name} was not configured`);
+      }
+    } catch (error) {
+      await interaction.reply(`❌ Error removing notifications: ${error.message}`);
+      console.error(`❌ Error removing server configuration: ${error.message}`);
+    }
+    return;
+  }
+
   // /help - Show commands
   if (commandName === 'help') {
     const helpMessage = `🤖 **99 Nights in Forest Bot - Slash Commands**\n\n` +
       `\`/check\` - Run automatic scan for new codes (anyone can use)\n` +
       `\`/scan <url>\` - Scan a specific URL for codes (anyone can use)\n` +
       `\`/thought\` - Setup notifications for your server (server owner only)\n` +
+      `\`/unthought\` - Remove notifications from your server (server owner only)\n` +
       `\`/help\` - Show this help message\n\n` +
       `⏰ **Auto Scan:** Every 1 hour\n` +
       `💡 **Examples:** Type \`/\` and select a command from the list!`;
