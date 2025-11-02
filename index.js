@@ -1,7 +1,33 @@
+
 import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
 import fs from 'fs';
+
+// Game configurations
+const GAMES = {
+  '99nights': {
+    name: '99 Nights in the Forest',
+    searchQuery: '99 Nights in Forest codes',
+    codePattern: /\b(\d{14}|[a-z]{5,15}|[A-Z]{5,15}|[a-zA-Z0-9]{6,15})\b/gi,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'undefined', 'error', 'success', 'failed', 'admin', 'login', 'logout', 'button', 'click', 'enter', 'submit', 'cancel', 'confirm', 'delete', 'update', 'create', 'twitter', 'youtube', 'discord', 'facebook', 'instagram', 'github', 'google', 'chrome', 'firefox', 'safari', 'january', 'february', 'march', 'april', 'august', 'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'forest', 'nights', 'roblox', 'games', 'please', 'thank', 'welcome', 'hello', 'world', 'server', 'client', 'player', 'cookie', 'session', 'script', 'function', 'return', 'console', 'window', 'document', 'article', 'section', 'header', 'footer', 'content', 'title', 'image', 'video', 'audio', 'table', 'border', 'mobile', 'desktop', 'tablet', 'android', 'iphone', 'windows', 'linux', 'macos', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+  },
+  'growagarden': {
+    name: 'Grow a Garden',
+    searchQuery: 'Grow a Garden Roblox codes',
+    codePattern: /\b([A-Z]{4,15}|[a-z]{4,15}|[A-Za-z0-9]{5,15})\b/gi,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'coins', 'gems', 'working', 'active', 'new', 'latest'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'grow', 'garden', 'play', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+  },
+  'fish': {
+    name: 'Fisch',
+    searchQuery: 'Fisch Roblox codes',
+    codePattern: /\b([A-Z]{4,15}|[a-z]{4,15}|[A-Za-z0-9]{5,15})\b/gi,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'cash', 'money', 'working', 'active', 'new', 'latest'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+  }
+};
 
 // Configuration from environment variables
 const CONFIG = {
@@ -36,14 +62,15 @@ function loadStoredCodes() {
   } catch (error) {
     console.error('❌ Error loading stored codes:', error.message);
   }
-  return [];
+  return {};
 }
 
 // Save codes to file
 function saveStoredCodes(codes) {
   try {
     fs.writeFileSync(CONFIG.CODES_FILE, JSON.stringify(codes, null, 2));
-    console.log(`💾 Saved ${codes.length} codes to ${CONFIG.CODES_FILE}`);
+    const totalCodes = Object.values(codes).reduce((sum, gameCodes) => sum + gameCodes.length, 0);
+    console.log(`💾 Saved ${totalCodes} total codes across ${Object.keys(codes).length} game(s)`);
   } catch (error) {
     console.error('❌ Error saving codes:', error.message);
   }
@@ -73,42 +100,29 @@ function saveServerConfigs(servers) {
 }
 
 // Extract potential codes from text
-function extractCodes(text, url) {
-  // Pattern 1: Date-based codes (14 digits like 20250927230051)
-  // Pattern 2: Lowercase letter codes (5-15 chars like afterparty, fishing, happyhalloween)
-  // Pattern 3: Uppercase letter codes (5-15 chars like ROBLOX)
-  // Pattern 4: Mixed alphanumeric (6-15 chars, case insensitive)
-  const codePattern = /\b(\d{14}|[a-z]{5,15}|[A-Z]{5,15}|[a-zA-Z0-9]{6,15})\b/gi;
-  const keywords = ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest'];
-  const blacklist = ['http', 'https', 'false', 'true', 'null', 'undefined', 'error', 'success', 'failed', 'admin', 'login', 'logout', 'button', 'click', 'enter', 'submit', 'cancel', 'confirm', 'delete', 'update', 'create', 'twitter', 'youtube', 'discord', 'facebook', 'instagram', 'github', 'google', 'chrome', 'firefox', 'safari', 'january', 'february', 'march', 'april', 'august', 'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'forest', 'nights', 'roblox', 'games', 'please', 'thank', 'welcome', 'hello', 'world', 'server', 'client', 'player', 'cookie', 'session', 'script', 'function', 'return', 'console', 'window', 'document', 'article', 'section', 'header', 'footer', 'content', 'title', 'image', 'video', 'audio', 'table', 'border', 'mobile', 'desktop', 'tablet', 'android', 'iphone', 'windows', 'linux', 'macos'];
+function extractCodes(text, url, gameId) {
+  const game = GAMES[gameId];
+  if (!game) return [];
+
   const potentialCodes = [];
-  
-  // Split text into words for context checking
   const words = text.split(/\s+/);
   
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
-    const matches = word.match(codePattern);
+    const matches = word.match(game.codePattern);
     
     if (matches) {
-      // Check if nearby words contain keywords
       const contextWords = words.slice(Math.max(0, i - 3), Math.min(words.length, i + 4)).join(' ').toLowerCase();
-      const hasKeyword = keywords.some(keyword => contextWords.includes(keyword));
+      const hasKeyword = game.keywords.some(keyword => contextWords.includes(keyword));
       
       if (hasKeyword) {
         matches.forEach(code => {
-          // Filter out blacklisted terms, duplicates, and too-common patterns
-          const isBlacklisted = blacklist.includes(code.toLowerCase());
+          const isBlacklisted = game.blacklist.includes(code.toLowerCase());
           const isDuplicate = potentialCodes.includes(code);
-          const isValidLength = code.length >= 5 && code.length <= 15;
-          
-          // Additional validation: skip if it's all the same character repeated
+          const isValidLength = code.length >= 4 && code.length <= 15;
           const isRepeating = /^(.)\1+$/.test(code);
           
-          // Skip common web words that aren't codes
-          const isCommonWord = ['about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help'].includes(code.toLowerCase());
-          
-          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating && !isCommonWord) {
+          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating) {
             potentialCodes.push(code);
           }
         });
@@ -116,11 +130,11 @@ function extractCodes(text, url) {
     }
   }
   
-  return potentialCodes.map(code => ({ code, source: url }));
+  return potentialCodes.map(code => ({ code, source: url, game: gameId }));
 }
 
 // Scrape a URL for codes
-async function scrapeUrl(url) {
+async function scrapeUrl(url, gameId) {
   try {
     console.log(`🔍 Scraping: ${url}`);
     const response = await fetch(url, {
@@ -138,13 +152,10 @@ async function scrapeUrl(url) {
     const html = await response.text();
     const $ = load(html);
     
-    // Remove script and style tags
     $('script, style').remove();
-    
-    // Get text content
     const text = $('body').text();
     
-    return extractCodes(text, url);
+    return extractCodes(text, url, gameId);
   } catch (error) {
     console.error(`❌ Error scraping ${url}:`, error.message);
     return [];
@@ -152,8 +163,9 @@ async function scrapeUrl(url) {
 }
 
 // Search for codes using Serper.dev Google Search API
-async function searchForCodes() {
-  console.log('\n🔎 Starting Google Search for "99 Nights in Forest codes" via Serper.dev...');
+async function searchForCodes(gameId) {
+  const game = GAMES[gameId];
+  console.log(`\n🔎 Starting Google Search for "${game.searchQuery}" via Serper.dev...`);
   
   if (!CONFIG.SERPER_KEY) {
     console.error('❌ SERPER_KEY not configured! Cannot perform search.');
@@ -161,7 +173,6 @@ async function searchForCodes() {
   }
   
   try {
-    // Call Serper.dev API
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: {
@@ -169,7 +180,7 @@ async function searchForCodes() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        q: '99 Nights in Forest codes',
+        q: game.searchQuery,
         num: 10
       })
     });
@@ -187,24 +198,21 @@ async function searchForCodes() {
       return [];
     }
     
-    console.log(`📋 Found ${data.organic.length} search results from Google`);
+    console.log(`📋 Found ${data.organic.length} search results for ${game.name}`);
     
-    // Take top 5 results
     const topResults = data.organic.slice(0, 5);
     const allCodes = [];
     
     for (const result of topResults) {
       if (result.link) {
         console.log(`   🔗 Scraping: ${result.title}`);
-        const codes = await scrapeUrl(result.link);
+        const codes = await scrapeUrl(result.link, gameId);
         allCodes.push(...codes);
-        
-        // Add delay between requests to be polite
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
-    console.log(`✅ Extracted ${allCodes.length} potential codes from ${topResults.length} URLs`);
+    console.log(`✅ Extracted ${allCodes.length} potential codes for ${game.name}`);
     return allCodes;
   } catch (error) {
     console.error('❌ Search error:', error.message);
@@ -219,34 +227,57 @@ async function checkForNewCodes() {
   console.log('='.repeat(60));
   
   const storedCodes = loadStoredCodes();
-  const storedCodeStrings = storedCodes.map(c => c.code);
+  const serverConfigs = loadServerConfigs();
   
-  console.log(`📦 Currently stored: ${storedCodeStrings.length} codes`);
-  
-  const foundCodes = await searchForCodes();
-  const newCodes = foundCodes.filter(found => !storedCodeStrings.includes(found.code));
-  
-  if (newCodes.length > 0) {
-    console.log(`\n🎉 FOUND ${newCodes.length} NEW CODE(S)!`);
-    newCodes.forEach(({ code, source }) => {
-      console.log(`   ✨ ${code} (from ${source})`);
-    });
-    
-    // Add to stored codes
-    const updatedCodes = [...storedCodes, ...newCodes.map(c => ({
-      code: c.code,
-      source: c.source,
-      foundAt: new Date().toISOString()
-    }))];
-    saveStoredCodes(updatedCodes);
-    
-    // Send notifications
-    await sendNotifications(newCodes);
-  } else {
-    console.log('\n📭 No new codes found (all are duplicates or none found)');
-    if (foundCodes.length > 0) {
-      console.log(`   ♻️ Found ${foundCodes.length} code(s) but all were already stored`);
+  // Get all unique games being tracked
+  const trackedGames = new Set();
+  serverConfigs.forEach(config => {
+    if (config.games) {
+      config.games.forEach(game => trackedGames.add(game));
     }
+  });
+  
+  if (trackedGames.size === 0) {
+    console.log('⚠️ No games are being tracked by any server. Use /setup to configure.');
+    return;
+  }
+  
+  const allNewCodes = {};
+  
+  for (const gameId of trackedGames) {
+    const game = GAMES[gameId];
+    console.log(`\n📦 Checking ${game.name}...`);
+    
+    if (!storedCodes[gameId]) {
+      storedCodes[gameId] = [];
+    }
+    
+    const storedCodeStrings = storedCodes[gameId].map(c => c.code);
+    const foundCodes = await searchForCodes(gameId);
+    const newCodes = foundCodes.filter(found => !storedCodeStrings.includes(found.code));
+    
+    if (newCodes.length > 0) {
+      console.log(`🎉 FOUND ${newCodes.length} NEW CODE(S) for ${game.name}!`);
+      newCodes.forEach(({ code, source }) => {
+        console.log(`   ✨ ${code} (from ${source})`);
+      });
+      
+      storedCodes[gameId].push(...newCodes.map(c => ({
+        code: c.code,
+        source: c.source,
+        foundAt: new Date().toISOString()
+      })));
+      
+      allNewCodes[gameId] = newCodes;
+    } else {
+      console.log(`📭 No new codes found for ${game.name}`);
+    }
+  }
+  
+  saveStoredCodes(storedCodes);
+  
+  if (Object.keys(allNewCodes).length > 0) {
+    await sendNotifications(allNewCodes);
   }
   
   console.log('='.repeat(60));
@@ -255,56 +286,50 @@ async function checkForNewCodes() {
 }
 
 // Send notifications to Discord
-async function sendNotifications(newCodes) {
-  try {
-    // Prepare clean message with codes only
-    const codeList = newCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
-    const message = `🎮 **New 99 Nights in Forest Codes!**\n\n${codeList}\n\n✨ **Total: ${newCodes.length} new code${newCodes.length > 1 ? 's' : ''}**\n⏰ Found at: ${new Date().toLocaleString()}`;
+async function sendNotifications(newCodesByGame) {
+  const serverConfigs = loadServerConfigs();
+  
+  for (const config of serverConfigs) {
+    if (!config.games || config.games.length === 0) continue;
     
-    // Send to main channel (if configured)
-    if (CONFIG.CHANNEL_ID) {
-      try {
-        const channel = await client.channels.fetch(CONFIG.CHANNEL_ID);
-        if (channel && channel.isTextBased()) {
-          await channel.send(message);
-          console.log('✅ Posted new codes to main channel');
-        }
-      } catch (error) {
-        console.error('❌ Error posting to main channel:', error.message);
-      }
-    }
-    
-    // Send DM to main user (if configured)
-    if (CONFIG.USER_ID) {
-      try {
-        const user = await client.users.fetch(CONFIG.USER_ID);
-        if (user) {
-          await user.send(message);
-          console.log('✅ Sent DM to main user');
-        }
-      } catch (error) {
-        console.error('❌ Error sending DM to main user:', error.message);
-      }
-    }
-    
-    // Send to all configured servers
-    const serverConfigs = loadServerConfigs();
-    if (serverConfigs.length > 0) {
-      console.log(`📡 Sending to ${serverConfigs.length} configured server(s)...`);
-      for (const config of serverConfigs) {
-        try {
-          const channel = await client.channels.fetch(config.channelId);
-          if (channel && channel.isTextBased()) {
-            await channel.send(message);
-            console.log(`✅ Posted to server: ${config.guildId} (${config.guildName})`);
+    try {
+      const channel = await client.channels.fetch(config.channelId);
+      if (!channel || !channel.isTextBased()) continue;
+      
+      for (const gameId of config.games) {
+        if (!newCodesByGame[gameId]) continue;
+        
+        const game = GAMES[gameId];
+        const codes = newCodesByGame[gameId];
+        
+        // Split into chunks to avoid Discord's 2000 character limit
+        const codeList = codes.map((c, i) => `${i + 1}. \`${c.code}\``);
+        const chunks = [];
+        let currentChunk = [];
+        
+        for (const code of codeList) {
+          if (currentChunk.join('\n').length + code.length > 1800) {
+            chunks.push(currentChunk);
+            currentChunk = [code];
+          } else {
+            currentChunk.push(code);
           }
-        } catch (error) {
-          console.error(`❌ Error posting to server ${config.guildId}:`, error.message);
         }
+        if (currentChunk.length > 0) chunks.push(currentChunk);
+        
+        for (let i = 0; i < chunks.length; i++) {
+          const message = i === 0
+            ? `🎮 **New ${game.name} Codes!**\n\n${chunks[i].join('\n')}\n\n✨ **Total: ${codes.length} new code${codes.length > 1 ? 's' : ''}**\n⏰ Found at: ${new Date().toLocaleString()}`
+            : chunks[i].join('\n');
+          
+          await channel.send(message);
+        }
+        
+        console.log(`✅ Posted ${codes.length} ${game.name} codes to ${config.guildName}`);
       }
+    } catch (error) {
+      console.error(`❌ Error posting to server ${config.guildId}:`, error.message);
     }
-  } catch (error) {
-    console.error('❌ Error in notifications:', error.message);
   }
 }
 
@@ -312,24 +337,43 @@ async function sendNotifications(newCodes) {
 async function registerCommands(clientId) {
   const commands = [
     new SlashCommandBuilder()
+      .setName('setup')
+      .setDescription('Setup code notifications for your server (Server Owner only)')
+      .addChannelOption(option =>
+        option.setName('channel')
+          .setDescription('The channel where codes will be posted')
+          .setRequired(true))
+      .addStringOption(option =>
+        option.setName('games')
+          .setDescription('Which games to track')
+          .setRequired(true)
+          .addChoices(
+            { name: '99 Nights in the Forest', value: '99nights' },
+            { name: 'Grow a Garden', value: 'growagarden' },
+            { name: 'Fisch', value: 'fish' },
+            { name: 'All Games', value: 'all' }
+          )),
+    new SlashCommandBuilder()
       .setName('check')
-      .setDescription('Run automatic scan for new codes from all sources'),
+      .setDescription('Run automatic scan for new codes from all configured games'),
     new SlashCommandBuilder()
       .setName('scan')
       .setDescription('Scan a specific URL for codes')
       .addStringOption(option =>
         option.setName('url')
           .setDescription('The URL to scan for codes')
-          .setRequired(true)),
+          .setRequired(true))
+      .addStringOption(option =>
+        option.setName('game')
+          .setDescription('Which game to scan for')
+          .setRequired(true)
+          .addChoices(
+            { name: '99 Nights in the Forest', value: '99nights' },
+            { name: 'Grow a Garden', value: 'growagarden' },
+            { name: 'Fisch', value: 'fish' }
+          )),
     new SlashCommandBuilder()
-      .setName('thought')
-      .setDescription('Setup code notifications for your server (Server Owner only)')
-      .addChannelOption(option =>
-        option.setName('channel')
-          .setDescription('The channel where codes will be posted')
-          .setRequired(true)),
-    new SlashCommandBuilder()
-      .setName('unthought')
+      .setName('unsetup')
       .setDescription('Remove code notifications from your server (Server Owner only)'),
     new SlashCommandBuilder()
       .setName('help')
@@ -356,13 +400,9 @@ client.once(Events.ClientReady, async (readyClient) => {
   console.log(`📡 Connected to ${readyClient.guilds.cache.size} server(s)`);
   console.log(`⏰ Scan interval: every 1 hour\n`);
   
-  // Register slash commands
   await registerCommands(readyClient.user.id);
-  
-  // Run initial scan
   await checkForNewCodes();
   
-  // Set up periodic scanning
   setInterval(checkForNewCodes, CONFIG.SCAN_INTERVAL);
   console.log('⏱️ Periodic scanning activated (every 1 hour)');
 });
@@ -373,38 +413,110 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   const { commandName } = interaction;
 
+  // /setup - Configure server with game selection
+  if (commandName === 'setup') {
+    const guild = interaction.guild;
+    
+    if (!guild) {
+      await interaction.reply('❌ This command can only be used in a server!');
+      return;
+    }
+    
+    if (interaction.user.id !== guild.ownerId) {
+      await interaction.reply('❌ Only the server owner can use this command!');
+      return;
+    }
+    
+    const channel = interaction.options.getChannel('channel');
+    const gamesOption = interaction.options.getString('games');
+    
+    if (!channel.isTextBased()) {
+      await interaction.reply('❌ Please select a text channel!');
+      return;
+    }
+    
+    const selectedGames = gamesOption === 'all' 
+      ? Object.keys(GAMES) 
+      : [gamesOption];
+    
+    const gameNames = selectedGames.map(id => GAMES[id].name).join(', ');
+    
+    console.log(`\n💭 Server setup requested by ${interaction.user.tag} (${guild.name})`);
+    
+    try {
+      const serverConfigs = loadServerConfigs();
+      const existingIndex = serverConfigs.findIndex(s => s.guildId === guild.id);
+      
+      const config = {
+        guildId: guild.id,
+        guildName: guild.name,
+        channelId: channel.id,
+        channelName: channel.name,
+        ownerId: guild.ownerId,
+        games: selectedGames,
+        configuredAt: new Date().toISOString()
+      };
+      
+      if (existingIndex >= 0) {
+        serverConfigs[existingIndex] = config;
+        await interaction.reply(`✅ **Configuration Updated!**\n\n` +
+          `📡 Server: **${guild.name}**\n` +
+          `📢 Channel: ${channel}\n` +
+          `🎮 Games: **${gameNames}**\n\n` +
+          `New codes will be posted here automatically every hour!`);
+      } else {
+        serverConfigs.push(config);
+        await interaction.reply(`✅ **Setup Complete!**\n\n` +
+          `📡 Server: **${guild.name}**\n` +
+          `📢 Channel: ${channel}\n` +
+          `🎮 Games: **${gameNames}**\n\n` +
+          `⏰ Scans run every 1 hour\n` +
+          `🔍 You can also use \`/check\` and \`/scan\` commands anytime!`);
+      }
+      
+      saveServerConfigs(serverConfigs);
+      console.log(`✅ Configuration saved for server: ${guild.name}`);
+    } catch (error) {
+      await interaction.reply(`❌ Error setting up notifications: ${error.message}`);
+      console.error(`❌ Error setting up server configuration: ${error.message}`);
+    }
+    return;
+  }
+
   // /check - Automatic scan
   if (commandName === 'check') {
     console.log(`\n🎯 Manual scan triggered by ${interaction.user.tag}`);
-    await interaction.reply('🔍 Starting manual code scan...');
+    await interaction.reply('🔍 Starting manual code scan for all configured games...');
     await checkForNewCodes();
     await interaction.followUp('✅ Manual scan complete! Check the channel for any new codes found.');
     return;
   }
 
-  // /scan <url> - Scan specific URL
+  // /scan <url> <game> - Scan specific URL
   if (commandName === 'scan') {
     const url = interaction.options.getString('url');
+    const gameId = interaction.options.getString('game');
     
     if (!url.startsWith('http')) {
       await interaction.reply('❌ Please provide a valid URL starting with http:// or https://');
       return;
     }
     
-    console.log(`\n🔗 URL scan requested by ${interaction.user.tag}: ${url}`);
+    const game = GAMES[gameId];
+    console.log(`\n🔗 URL scan requested by ${interaction.user.tag}: ${url} (${game.name})`);
     
     try {
-      await interaction.reply(`🔍 Scanning URL for codes...\n${url}`);
+      await interaction.reply(`🔍 Scanning URL for ${game.name} codes...\n${url}`);
       
-      const foundCodes = await scrapeUrl(url);
+      const foundCodes = await scrapeUrl(url, gameId);
       
       if (foundCodes.length > 0) {
         const codeList = foundCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
-        const response = `✅ **Found ${foundCodes.length} code${foundCodes.length > 1 ? 's' : ''}!**\n\n${codeList}`;
+        const response = `✅ **Found ${foundCodes.length} ${game.name} code${foundCodes.length > 1 ? 's' : ''}!**\n\n${codeList}`;
         await interaction.followUp(response);
         console.log(`✅ Found ${foundCodes.length} code(s) from user-provided URL`);
       } else {
-        await interaction.followUp('📭 No codes found on this URL.\n*Tip: Make sure the page contains codes with keywords like "Code", "Reward", or "Gift"*');
+        await interaction.followUp(`📭 No ${game.name} codes found on this URL.\n*Tip: Make sure the page contains codes with relevant keywords*`);
         console.log('⚠️ No codes found from user-provided URL');
       }
     } catch (error) {
@@ -414,8 +526,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  // /thought - Setup server notifications (Server Owner only)
-  if (commandName === 'thought') {
+  // /unsetup - Remove server notifications
+  if (commandName === 'unsetup') {
     const guild = interaction.guild;
     
     if (!guild) {
@@ -423,84 +535,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
     
-    // Check if user is the server owner
-    if (interaction.user.id !== guild.ownerId) {
-      await interaction.reply('❌ Only the server owner can use this command!');
-      return;
-    }
-    
-    const channel = interaction.options.getChannel('channel');
-    
-    if (!channel.isTextBased()) {
-      await interaction.reply('❌ Please select a text channel!');
-      return;
-    }
-    
-    console.log(`\n💭 Server setup requested by ${interaction.user.tag} (${guild.name})`);
-    
-    try {
-      const serverConfigs = loadServerConfigs();
-      
-      // Check if server is already configured
-      const existingIndex = serverConfigs.findIndex(s => s.guildId === guild.id);
-      
-      if (existingIndex >= 0) {
-        // Update existing configuration
-        serverConfigs[existingIndex] = {
-          guildId: guild.id,
-          guildName: guild.name,
-          channelId: channel.id,
-          channelName: channel.name,
-          ownerId: guild.ownerId,
-          configuredAt: new Date().toISOString()
-        };
-        saveServerConfigs(serverConfigs);
-        
-        await interaction.reply(`✅ **Configuration Updated!**\n\n` +
-          `📡 Server: **${guild.name}**\n` +
-          `📢 Channel: ${channel}\n` +
-          `🎮 New codes will be posted here automatically every hour!\n\n` +
-          `*Your previous configuration has been updated.*`);
-        
-        console.log(`✅ Updated configuration for server: ${guild.name}`);
-      } else {
-        // Add new configuration
-        serverConfigs.push({
-          guildId: guild.id,
-          guildName: guild.name,
-          channelId: channel.id,
-          channelName: channel.name,
-          ownerId: guild.ownerId,
-          configuredAt: new Date().toISOString()
-        });
-        saveServerConfigs(serverConfigs);
-        
-        await interaction.reply(`✅ **Setup Complete!**\n\n` +
-          `📡 Server: **${guild.name}**\n` +
-          `📢 Channel: ${channel}\n` +
-          `🎮 New 99 Nights in Forest codes will be posted here automatically!\n\n` +
-          `⏰ Scans run every 1 hour\n` +
-          `🔍 You can also use \`/check\` and \`/scan\` commands anytime!`);
-        
-        console.log(`✅ New configuration added for server: ${guild.name}`);
-      }
-    } catch (error) {
-      await interaction.reply(`❌ Error setting up notifications: ${error.message}`);
-      console.error(`❌ Error setting up server configuration: ${error.message}`);
-    }
-    return;
-  }
-
-  // /unthought - Remove server notifications (Server Owner only)
-  if (commandName === 'unthought') {
-    const guild = interaction.guild;
-    
-    if (!guild) {
-      await interaction.reply('❌ This command can only be used in a server!');
-      return;
-    }
-    
-    // Check if user is the server owner
     if (interaction.user.id !== guild.ownerId) {
       await interaction.reply('❌ Only the server owner can use this command!');
       return;
@@ -513,21 +547,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const existingIndex = serverConfigs.findIndex(s => s.guildId === guild.id);
       
       if (existingIndex >= 0) {
-        // Remove the configuration
-        const removedConfig = serverConfigs[existingIndex];
         serverConfigs.splice(existingIndex, 1);
         saveServerConfigs(serverConfigs);
         
         await interaction.reply(`✅ **Configuration Removed!**\n\n` +
           `📡 Server: **${guild.name}**\n` +
           `🔕 Code notifications have been disabled for this server.\n\n` +
-          `*You can set it up again anytime using \`/thought\`*`);
+          `*You can set it up again anytime using \`/setup\`*`);
         
         console.log(`✅ Removed configuration for server: ${guild.name}`);
       } else {
         await interaction.reply(`ℹ️ **Not Configured**\n\n` +
           `This server doesn't have code notifications set up.\n\n` +
-          `Use \`/thought\` to set up automatic notifications!`);
+          `Use \`/setup\` to set up automatic notifications!`);
         
         console.log(`⚠️ Server ${guild.name} was not configured`);
       }
@@ -540,14 +572,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // /help - Show commands
   if (commandName === 'help') {
-    const helpMessage = `🤖 **99 Nights in Forest Bot - Slash Commands**\n\n` +
-      `\`/check\` - Run automatic scan for new codes (anyone can use)\n` +
-      `\`/scan <url>\` - Scan a specific URL for codes (anyone can use)\n` +
-      `\`/thought\` - Setup notifications for your server (server owner only)\n` +
-      `\`/unthought\` - Remove notifications from your server (server owner only)\n` +
+    const helpMessage = `🤖 **Multi-Game Code Scraper Bot - Commands**\n\n` +
+      `\`/setup\` - Setup notifications for your server with game selection (server owner only)\n` +
+      `\`/check\` - Run manual scan for all configured games (anyone can use)\n` +
+      `\`/scan <url> <game>\` - Scan a specific URL for codes (anyone can use)\n` +
+      `\`/unsetup\` - Remove notifications from your server (server owner only)\n` +
       `\`/help\` - Show this help message\n\n` +
-      `⏰ **Auto Scan:** Every 1 hour\n` +
-      `💡 **Examples:** Type \`/\` and select a command from the list!`;
+      `🎮 **Supported Games:**\n` +
+      `• 99 Nights in the Forest\n` +
+      `• Grow a Garden\n` +
+      `• Fisch\n\n` +
+      `⏰ **Auto Scan:** Every 1 hour for all configured games`;
     await interaction.reply(helpMessage);
     return;
   }
@@ -567,11 +602,7 @@ console.log('🚀 Starting Discord bot...');
 
 if (!CONFIG.DISCORD_TOKEN) {
   console.error('\n❌ ERROR: DISCORD_TOKEN environment variable is not set!');
-  console.log('Please set the following environment variables:');
-  console.log('  - DISCORD_TOKEN (required)');
-  console.log('  - GUILD_ID (optional, for server context)');
-  console.log('  - CHANNEL_ID (required for channel notifications)');
-  console.log('  - USER_ID (required for DM notifications)\n');
+  console.log('Please set DISCORD_TOKEN in your Replit Secrets.');
   process.exit(1);
 }
 
