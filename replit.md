@@ -1,16 +1,17 @@
-# 99 Days in the Forest - Discord Code Scraper Bot
+# 99 Nights in the Forest - Discord Code Scraper Bot
 
 ## Overview
-A Discord bot built with Node.js that automatically searches the web for new "99 Days in the Forest" redeem codes and notifies users via Discord when new codes are discovered. The bot uses web scraping with DuckDuckGo search and Cheerio to find and extract codes.
+A Discord bot built with Node.js that automatically searches the web for new "99 Nights in the Forest" (Roblox game) redeem codes and notifies users via Discord when new codes are discovered. The bot uses web scraping with DuckDuckGo search (with fallback URLs) and Cheerio to find and extract codes.
 
 ## Current State
-- **Status**: Initial implementation complete
+- **Status**: Fully functional and running
 - **Created**: November 2, 2025
 - **Language**: Node.js (ES Modules)
 - **Main File**: `index.js`
+- **Game**: 99 Nights in the Forest (Roblox)
 
 ## Recent Changes
-- November 2, 2025: Initial project setup
+- November 2, 2025: Initial project setup and refinement
   - Created Discord bot with discord.js v14
   - Implemented web scraping with duck-duck-scrape and cheerio
   - Added code extraction with regex pattern `/([A-Z0-9]{5,15})/g`
@@ -18,6 +19,10 @@ A Discord bot built with Node.js that automatically searches the web for new "99
   - Added automatic scanning (startup + every 3 hours)
   - Added manual scan trigger via `!check` command
   - Configured Discord notifications (channel + DM)
+  - Fixed deprecation warning (ready → clientReady)
+  - Added fallback URL scraping for when DuckDuckGo is rate-limited
+  - Updated with correct game name (99 Nights, not Days)
+  - Implemented valid fallback URLs from November 2025
 
 ## Project Architecture
 

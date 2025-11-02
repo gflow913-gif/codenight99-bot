@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { search } from 'duck-duck-scrape';
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
@@ -110,18 +110,45 @@ async function scrapeUrl(url) {
   }
 }
 
+// Fallback: scrape known gaming code websites directly
+async function scrapeFallbackUrls() {
+  console.log('🔄 Using fallback: scraping known gaming code websites...');
+  
+  const fallbackUrls = [
+    'https://www.pcgamer.com/games/roblox/99-nights-in-the-forest-codes/',
+    'https://beebom.com/99-nights-in-the-forest-codes/',
+    'https://progameguides.com/roblox/99-nights-in-the-forest-codes/',
+    'https://gamerant.com/roblox-99-nights-in-the-forest-codes/',
+    'https://www.pockettactics.com/99-nights-in-the-forest-codes'
+  ];
+  
+  const allCodes = [];
+  
+  for (const url of fallbackUrls) {
+    const codes = await scrapeUrl(url);
+    allCodes.push(...codes);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  
+  console.log(`✅ Fallback scraping extracted ${allCodes.length} potential codes`);
+  return allCodes;
+}
+
 // Search for codes on the web
 async function searchForCodes() {
-  console.log('\n🔎 Starting web search for "99 Days in the Forest codes"...');
+  console.log('\n🔎 Starting web search for "99 Nights in the Forest codes"...');
   
   try {
-    const searchResults = await search('99 Days in the Forest codes', {
+    // Add delay before search to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const searchResults = await search('99 Nights in the Forest codes', {
       safeSearch: 0
     });
     
     if (!searchResults.results || searchResults.results.length === 0) {
-      console.log('⚠️ No search results found');
-      return [];
+      console.log('⚠️ No search results found, trying fallback URLs...');
+      return await scrapeFallbackUrls();
     }
     
     console.log(`📋 Found ${searchResults.results.length} search results`);
@@ -136,7 +163,7 @@ async function searchForCodes() {
         allCodes.push(...codes);
         
         // Add delay between requests to be polite
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
@@ -144,6 +171,10 @@ async function searchForCodes() {
     return allCodes;
   } catch (error) {
     console.error('❌ Search error:', error.message);
+    if (error.message.includes('anomaly') || error.message.includes('too quickly')) {
+      console.log('💡 DuckDuckGo rate limiting detected, switching to fallback URLs...');
+      return await scrapeFallbackUrls();
+    }
     return [];
   }
 }
@@ -200,7 +231,7 @@ async function sendNotifications(newCodes) {
   try {
     // Prepare message
     const codeList = newCodes.map(c => `**${c.code}** - ${c.source}`).join('\n');
-    const message = `🎮 **New 99 Days in the Forest Codes Found!**\n\n${codeList}\n\n*Found at: ${new Date().toLocaleString()}*`;
+    const message = `🎮 **New 99 Nights in the Forest Codes Found!**\n\n${codeList}\n\n*Found at: ${new Date().toLocaleString()}*`;
     
     // Send to channel
     try {
@@ -229,9 +260,9 @@ async function sendNotifications(newCodes) {
 }
 
 // Discord bot ready event
-client.on('ready', async () => {
-  console.log(`\n✅ Discord bot logged in as ${client.user.tag}`);
-  console.log(`📡 Connected to ${client.guilds.cache.size} server(s)`);
+client.once(Events.ClientReady, async (readyClient) => {
+  console.log(`\n✅ Discord bot logged in as ${readyClient.user.tag}`);
+  console.log(`📡 Connected to ${readyClient.guilds.cache.size} server(s)`);
   console.log(`⏰ Scan interval: every 3 hours\n`);
   
   // Run initial scan
