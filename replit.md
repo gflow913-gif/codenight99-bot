@@ -25,9 +25,10 @@ A Discord bot built with Node.js that automatically searches the web for new "99
   - Added SESSION_SECRET environment variable
   - Updated for standalone deployment on external platforms
   - Enhanced .gitignore for proper version control
-  - Added !scan <url> command for user-requested URL scanning
-  - Added !help command to show all available commands
+  - Added /scan <url> slash command for user-requested URL scanning
+  - Added /help slash command to show all available commands
   - Improved message formatting (cleaner, numbered code lists)
+  - Converted all commands to Discord slash commands for better UX
 
 ## Project Architecture
 
@@ -44,9 +45,9 @@ A Discord bot built with Node.js that automatically searches the web for new "99
 4. Duplicate prevention via persistent storage
 5. Scheduled scanning (3-hour intervals)
 6. Discord integration for notifications
-7. Manual scan trigger command (!check)
-8. User-friendly URL scanning command (!scan <url>)
-9. Help command for command list (!help)
+7. Manual scan trigger slash command (/check)
+8. User-friendly URL scanning slash command (/scan <url>)
+9. Help slash command for command list (/help)
 
 ### Dependencies
 - `discord.js` (^14.15.3) - Discord bot framework

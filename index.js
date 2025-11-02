@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { search } from 'duck-duck-scrape';
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
@@ -260,11 +260,46 @@ async function sendNotifications(newCodes) {
   }
 }
 
+// Register slash commands
+async function registerCommands(clientId) {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName('check')
+      .setDescription('Run automatic scan for new codes from all sources'),
+    new SlashCommandBuilder()
+      .setName('scan')
+      .setDescription('Scan a specific URL for codes')
+      .addStringOption(option =>
+        option.setName('url')
+          .setDescription('The URL to scan for codes')
+          .setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('help')
+      .setDescription('Show all available commands')
+  ].map(command => command.toJSON());
+
+  const rest = new REST({ version: '10' }).setToken(CONFIG.DISCORD_TOKEN);
+
+  try {
+    console.log('🔄 Registering slash commands...');
+    await rest.put(
+      Routes.applicationCommands(clientId),
+      { body: commands }
+    );
+    console.log('✅ Slash commands registered successfully!');
+  } catch (error) {
+    console.error('❌ Error registering slash commands:', error);
+  }
+}
+
 // Discord bot ready event
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`\n✅ Discord bot logged in as ${readyClient.user.tag}`);
   console.log(`📡 Connected to ${readyClient.guilds.cache.size} server(s)`);
   console.log(`⏰ Scan interval: every 3 hours\n`);
+  
+  // Register slash commands
+  await registerCommands(readyClient.user.id);
   
   // Run initial scan
   await checkForNewCodes();
@@ -274,64 +309,62 @@ client.once(Events.ClientReady, async (readyClient) => {
   console.log('⏱️ Periodic scanning activated (every 3 hours)');
 });
 
-// Handle commands
-client.on('messageCreate', async (message) => {
-  // Ignore bot messages
-  if (message.author.bot) return;
-  
-  const content = message.content.trim();
-  
-  // !check - Automatic scan
-  if (content === '!check') {
-    console.log(`\n🎯 Manual scan triggered by ${message.author.tag}`);
-    await message.reply('🔍 Starting manual code scan...');
+// Handle slash commands
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const { commandName } = interaction;
+
+  // /check - Automatic scan
+  if (commandName === 'check') {
+    console.log(`\n🎯 Manual scan triggered by ${interaction.user.tag}`);
+    await interaction.reply('🔍 Starting manual code scan...');
     await checkForNewCodes();
-    await message.reply('✅ Manual scan complete! Check console for details.');
+    await interaction.followUp('✅ Manual scan complete! Check the channel for any new codes found.');
     return;
   }
-  
-  // !scan <url> - Scan specific URL
-  if (content.startsWith('!scan ')) {
-    const url = content.substring(6).trim();
+
+  // /scan <url> - Scan specific URL
+  if (commandName === 'scan') {
+    const url = interaction.options.getString('url');
     
-    if (!url || !url.startsWith('http')) {
-      await message.reply('❌ Please provide a valid URL!\nUsage: `!scan <url>`\nExample: `!scan https://example.com/codes`');
+    if (!url.startsWith('http')) {
+      await interaction.reply('❌ Please provide a valid URL starting with http:// or https://');
       return;
     }
     
-    console.log(`\n🔗 URL scan requested by ${message.author.tag}: ${url}`);
+    console.log(`\n🔗 URL scan requested by ${interaction.user.tag}: ${url}`);
     
     try {
-      await message.reply(`🔍 Scanning URL for codes...\n${url}`);
+      await interaction.reply(`🔍 Scanning URL for codes...\n${url}`);
       
       const foundCodes = await scrapeUrl(url);
       
       if (foundCodes.length > 0) {
         const codeList = foundCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
         const response = `✅ **Found ${foundCodes.length} code${foundCodes.length > 1 ? 's' : ''}!**\n\n${codeList}`;
-        await message.reply(response);
+        await interaction.followUp(response);
         console.log(`✅ Found ${foundCodes.length} code(s) from user-provided URL`);
       } else {
-        await message.reply('📭 No codes found on this URL.\n*Tip: Make sure the page contains codes with keywords like "Code", "Reward", or "Gift"*');
+        await interaction.followUp('📭 No codes found on this URL.\n*Tip: Make sure the page contains codes with keywords like "Code", "Reward", or "Gift"*');
         console.log('⚠️ No codes found from user-provided URL');
       }
     } catch (error) {
-      await message.reply(`❌ Error scanning URL: ${error.message}`);
+      await interaction.followUp(`❌ Error scanning URL: ${error.message}`);
       console.error(`❌ Error scanning user-provided URL: ${error.message}`);
     }
     return;
   }
-  
-  // !help - Show commands
-  if (content === '!help' || content === '!commands') {
-    const helpMessage = `🤖 **99 Nights in Forest Bot - Commands**\n\n` +
-      `\`!check\` - Run automatic scan for new codes\n` +
-      `\`!scan <url>\` - Scan a specific URL for codes\n` +
-      `\`!help\` - Show this help message\n\n` +
+
+  // /help - Show commands
+  if (commandName === 'help') {
+    const helpMessage = `🤖 **99 Nights in Forest Bot - Slash Commands**\n\n` +
+      `\`/check\` - Run automatic scan for new codes\n` +
+      `\`/scan <url>\` - Scan a specific URL for codes\n` +
+      `\`/help\` - Show this help message\n\n` +
       `💡 **Examples:**\n` +
-      `\`!scan https://example.com/codes\`\n` +
-      `\`!check\``;
-    await message.reply(helpMessage);
+      `Type \`/\` and select a command from the list!`;
+    await interaction.reply(helpMessage);
     return;
   }
 });

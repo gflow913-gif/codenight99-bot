@@ -30,10 +30,10 @@ Set the following environment variables (in .env file or your hosting platform):
 2. Create a new application
 3. Go to "Bot" section and create a bot
 4. Copy the bot token and set it as `DISCORD_TOKEN`
-5. Enable "Message Content Intent" in the Bot settings
+5. Enable "Message Content Intent" in the Bot settings (required for fallback)
 6. Go to OAuth2 > URL Generator:
-   - Scopes: `bot`
-   - Bot Permissions: `Send Messages`, `Read Messages/View Channels`, `Send Messages in Threads`
+   - Scopes: `bot` + `applications.commands`
+   - Bot Permissions: `Send Messages`, `Read Messages/View Channels`, `Send Messages in Threads`, `Use Slash Commands`
 7. Use the generated URL to invite the bot to your server
 
 ### 3. Get Discord IDs
@@ -48,7 +48,7 @@ Enable Developer Mode in Discord (Settings > Advanced > Developer Mode), then:
 The bot will automatically:
 - Scan for codes when it starts
 - Scan every 3 hours thereafter
-- Respond to `!check` command for manual scans
+- Respond to `/check` slash command for manual scans
 
 ## How It Works
 
@@ -69,18 +69,19 @@ The bot will automatically:
 
 Dependencies are automatically installed on startup.
 
-## Commands
+## Slash Commands
 
-- `!check` - Run automatic scan for new codes (all sources)
-- `!scan <url>` - Scan a specific URL for codes (any user can use this)
-- `!help` - Show all available commands
+The bot uses Discord slash commands (just type `/` to see them):
 
-**Examples:**
-```
-!check
-!scan https://progameguides.com/roblox/99-nights-in-forest-codes/
-!help
-```
+- `/check` - Run automatic scan for new codes (all sources)
+- `/scan <url>` - Scan a specific URL for codes (any user can use this)
+- `/help` - Show all available commands
+
+**How to use:**
+1. Type `/` in Discord
+2. Select a command from the autocomplete list
+3. Fill in any required parameters (like URL for `/scan`)
+4. Press Enter!
 
 ## Logs
 
