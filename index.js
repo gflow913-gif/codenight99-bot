@@ -20,12 +20,12 @@ const GAMES = {
     keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'coins', 'gems', 'working', 'active', 'new', 'latest'],
     blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'grow', 'garden', 'play', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
   },
-  'fish': {
+  'fischit': {
     name: 'Fisch',
     searchQuery: 'Fisch Roblox codes',
     codePattern: /\b([A-Z]{4,15}|[a-z]{4,15}|[A-Za-z0-9]{5,15})\b/gi,
     keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'cash', 'money', 'working', 'active', 'new', 'latest'],
-    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also']
   }
 };
 
@@ -105,28 +105,62 @@ function extractCodes(text, url, gameId) {
   if (!game) return [];
 
   const potentialCodes = [];
-  const words = text.split(/\s+/);
   
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const matches = word.match(game.codePattern);
+  // Clean text: remove extra whitespace and normalize
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  const lines = cleanText.split(/[.!?\n]+/);
+  
+  for (const line of lines) {
+    const lineLower = line.toLowerCase();
     
-    if (matches) {
-      const contextWords = words.slice(Math.max(0, i - 3), Math.min(words.length, i + 4)).join(' ').toLowerCase();
-      const hasKeyword = game.keywords.some(keyword => contextWords.includes(keyword));
+    // Must contain at least one keyword to be considered
+    const hasKeyword = game.keywords.some(keyword => lineLower.includes(keyword));
+    if (!hasKeyword) continue;
+    
+    // Extract potential codes from this line
+    const matches = line.match(game.codePattern) || [];
+    
+    for (const code of matches) {
+      const codeLower = code.toLowerCase();
       
-      if (hasKeyword) {
-        matches.forEach(code => {
-          const isBlacklisted = game.blacklist.includes(code.toLowerCase());
-          const isDuplicate = potentialCodes.includes(code);
-          const isValidLength = code.length >= 4 && code.length <= 15;
-          const isRepeating = /^(.)\1+$/.test(code);
-          
-          if (!isDuplicate && !isBlacklisted && isValidLength && !isRepeating) {
-            potentialCodes.push(code);
+      // Skip if blacklisted
+      if (game.blacklist.includes(codeLower)) continue;
+      
+      // Skip if already found
+      if (potentialCodes.includes(code)) continue;
+      
+      // Skip if too short or too long
+      if (code.length < 4 || code.length > 15) continue;
+      
+      // Skip if all same character (like "aaaaa")
+      if (/^(.)\1+$/.test(code)) continue;
+      
+      // Skip common words that slip through
+      const commonWords = ['more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'over', 'such', 'even', 'most', 'other', 'these', 'about'];
+      if (commonWords.includes(codeLower)) continue;
+      
+      // For non-numeric codes, check if it appears near strong code indicators
+      if (!/^\d+$/.test(code)) {
+        const codeIndex = line.indexOf(code);
+        const nearContext = line.substring(Math.max(0, codeIndex - 50), Math.min(line.length, codeIndex + code.length + 50)).toLowerCase();
+        
+        // Strong indicators that this is actually a code
+        const strongIndicators = ['redeem:', 'code:', 'enter', 'use code', 'promo:', 'gift:', 'reward:'];
+        const hasStrongIndicator = strongIndicators.some(indicator => nearContext.includes(indicator));
+        
+        // If it's in a list format (e.g., "- CODE" or "• CODE")
+        const isInList = /[\-•*]\s*$/m.test(line.substring(Math.max(0, codeIndex - 5), codeIndex));
+        
+        // Skip if no strong indicators and not in a list
+        if (!hasStrongIndicator && !isInList) {
+          // Exception: if it's all caps and 5+ characters, it's likely a code
+          if (!/^[A-Z0-9]+$/.test(code) || code.length < 5) {
+            continue;
           }
-        });
+        }
       }
+      
+      potentialCodes.push(code);
     }
   }
   
@@ -296,37 +330,54 @@ async function sendNotifications(newCodesByGame) {
       const channel = await client.channels.fetch(config.channelId);
       if (!channel || !channel.isTextBased()) continue;
       
+      // Group all new codes by game for this notification
+      const hasNewCodes = Object.keys(newCodesByGame).some(gameId => 
+        config.games.includes(gameId) && newCodesByGame[gameId].length > 0
+      );
+      
+      if (!hasNewCodes) continue;
+      
+      // Send a summary header
+      const totalNewCodes = Object.keys(newCodesByGame)
+        .filter(gameId => config.games.includes(gameId))
+        .reduce((sum, gameId) => sum + newCodesByGame[gameId].length, 0);
+      
+      await channel.send(`🎉 **New Codes Found!** 🎉\n📊 Total: **${totalNewCodes}** new code${totalNewCodes > 1 ? 's' : ''}\n⏰ ${new Date().toLocaleString()}\n${'─'.repeat(40)}`);
+      
+      // Send codes organized by game category
       for (const gameId of config.games) {
-        if (!newCodesByGame[gameId]) continue;
+        if (!newCodesByGame[gameId] || newCodesByGame[gameId].length === 0) continue;
         
         const game = GAMES[gameId];
         const codes = newCodesByGame[gameId];
         
+        // Create formatted code list
+        const codeList = codes.map((c, i) => `\`${c.code}\``);
+        
         // Split into chunks to avoid Discord's 2000 character limit
-        const codeList = codes.map((c, i) => `${i + 1}. \`${c.code}\``);
-        const chunks = [];
-        let currentChunk = [];
-        
-        for (const code of codeList) {
-          if (currentChunk.join('\n').length + code.length > 1800) {
-            chunks.push(currentChunk);
-            currentChunk = [code];
-          } else {
-            currentChunk.push(code);
+        const maxCodesPerMessage = 20;
+        for (let i = 0; i < codeList.length; i += maxCodesPerMessage) {
+          const chunk = codeList.slice(i, i + maxCodesPerMessage);
+          const isFirst = i === 0;
+          const isLast = i + maxCodesPerMessage >= codeList.length;
+          
+          let message = '';
+          if (isFirst) {
+            message += `\n🎮 **${game.name}** (${codes.length} code${codes.length > 1 ? 's' : ''})\n`;
           }
-        }
-        if (currentChunk.length > 0) chunks.push(currentChunk);
-        
-        for (let i = 0; i < chunks.length; i++) {
-          const message = i === 0
-            ? `🎮 **New ${game.name} Codes!**\n\n${chunks[i].join('\n')}\n\n✨ **Total: ${codes.length} new code${codes.length > 1 ? 's' : ''}**\n⏰ Found at: ${new Date().toLocaleString()}`
-            : chunks[i].join('\n');
+          message += chunk.join(' • ');
+          if (isLast) {
+            message += '\n';
+          }
           
           await channel.send(message);
         }
         
         console.log(`✅ Posted ${codes.length} ${game.name} codes to ${config.guildName}`);
       }
+      
+      await channel.send(`${'─'.repeat(40)}\n✅ All codes posted!`);
+      
     } catch (error) {
       console.error(`❌ Error posting to server ${config.guildId}:`, error.message);
     }
@@ -350,7 +401,7 @@ async function registerCommands(clientId) {
           .addChoices(
             { name: '99 Nights in the Forest', value: '99nights' },
             { name: 'Grow a Garden', value: 'growagarden' },
-            { name: 'Fisch', value: 'fish' },
+            { name: 'Fisch', value: 'fischit' },
             { name: 'All Games', value: 'all' }
           )),
     new SlashCommandBuilder()
@@ -370,7 +421,7 @@ async function registerCommands(clientId) {
           .addChoices(
             { name: '99 Nights in the Forest', value: '99nights' },
             { name: 'Grow a Garden', value: 'growagarden' },
-            { name: 'Fisch', value: 'fish' }
+            { name: 'Fisch', value: 'fischit' }
           )),
     new SlashCommandBuilder()
       .setName('unsetup')
