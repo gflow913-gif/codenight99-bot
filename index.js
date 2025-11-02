@@ -59,6 +59,15 @@ function loadStoredCodes() {
       const data = fs.readFileSync(CONFIG.CODES_FILE, 'utf8');
       return JSON.parse(data);
     }
+
+
+// Helper function to get date N days ago in YYYY-MM-DD format
+function getDateDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
   } catch (error) {
     console.error('❌ Error loading stored codes:', error.message);
   }
@@ -106,12 +115,22 @@ function extractCodes(text, url, gameId) {
 
   const potentialCodes = [];
   
+  // Check if page mentions expired codes - skip entirely if so
+  const textLower = text.toLowerCase();
+  const expiredIndicators = ['expired', 'no longer valid', 'not working', 'outdated', 'removed'];
+  const hasExpiredWarning = expiredIndicators.some(indicator => textLower.includes(indicator));
+  
   // Clean text: remove extra whitespace and normalize
   const cleanText = text.replace(/\s+/g, ' ').trim();
   const lines = cleanText.split(/[.!?\n]+/);
   
   for (const line of lines) {
     const lineLower = line.toLowerCase();
+    
+    // Skip lines that mention expired/outdated
+    if (expiredIndicators.some(indicator => lineLower.includes(indicator))) {
+      continue;
+    }
     
     // Must contain at least one keyword to be considered
     const hasKeyword = game.keywords.some(keyword => lineLower.includes(keyword));
@@ -207,6 +226,7 @@ async function searchForCodes(gameId) {
   }
   
   try {
+    // Add date filter for last 15 days to get only recent content
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: {
@@ -214,8 +234,9 @@ async function searchForCodes(gameId) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        q: game.searchQuery,
-        num: 10
+        q: `${game.searchQuery} (after:${getDateDaysAgo(15)})`,
+        num: 10,
+        tbs: 'qdr:m' // Filter to last month for extra freshness
       })
     });
     
@@ -232,9 +253,21 @@ async function searchForCodes(gameId) {
       return [];
     }
     
-    console.log(`📋 Found ${data.organic.length} search results for ${game.name}`);
+    console.log(`📋 Found ${data.organic.length} search results for ${game.name} (filtered to last 15 days)`);
     
-    const topResults = data.organic.slice(0, 5);
+    // Filter results to only include those with recent dates in snippet or published date
+    const recentResults = data.organic.filter(result => {
+      // Check if result has publication date info
+      if (result.date) {
+        const resultDate = new Date(result.date);
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 15);
+        return resultDate >= cutoffDate;
+      }
+      return true; // Include if no date info available
+    });
+    
+    const topResults = recentResults.slice(0, 5);
     const allCodes = [];
     
     for (const result of topResults) {
