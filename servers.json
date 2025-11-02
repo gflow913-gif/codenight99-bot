@@ -5,6 +5,11 @@
     "channelId": "1434391802718326916",
     "channelName": "🌲99nights-codes",
     "ownerId": "1309720025912971355",
-    "configuredAt": "2025-11-02T05:26:28.452Z"
+    "games": [
+      "99nights",
+      "growagarden",
+      "fish"
+    ],
+    "configuredAt": "2025-11-02T07:27:24.458Z"
   }
 ]
