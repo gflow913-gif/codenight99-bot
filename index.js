@@ -230,9 +230,9 @@ async function sendNotifications(newCodes) {
   }
   
   try {
-    // Prepare message
-    const codeList = newCodes.map(c => `**${c.code}** - ${c.source}`).join('\n');
-    const message = `🎮 **New 99 Nights in Forest Codes Found!**\n\n${codeList}\n\n*Found at: ${new Date().toLocaleString()}*`;
+    // Prepare clean message with codes only
+    const codeList = newCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
+    const message = `🎮 **New 99 Nights in Forest Codes!**\n\n${codeList}\n\n✨ **Total: ${newCodes.length} new code${newCodes.length > 1 ? 's' : ''}**\n⏰ Found at: ${new Date().toLocaleString()}`;
     
     // Send to channel
     try {
