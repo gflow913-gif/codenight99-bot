@@ -9,23 +9,23 @@ const GAMES = {
   '99nights': {
     name: '99 Nights in the Forest',
     searchQuery: '99 Nights in Forest codes',
-    codePattern: /\b(\d{14}|[a-z]{5,15}|[A-Z]{5,15}|[a-zA-Z0-9]{6,15})\b/gi,
-    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest'],
-    blacklist: ['http', 'https', 'false', 'true', 'null', 'undefined', 'error', 'success', 'failed', 'admin', 'login', 'logout', 'button', 'click', 'enter', 'submit', 'cancel', 'confirm', 'delete', 'update', 'create', 'twitter', 'youtube', 'discord', 'facebook', 'instagram', 'github', 'google', 'chrome', 'firefox', 'safari', 'january', 'february', 'march', 'april', 'august', 'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'forest', 'nights', 'roblox', 'games', 'please', 'thank', 'welcome', 'hello', 'world', 'server', 'client', 'player', 'cookie', 'session', 'script', 'function', 'return', 'console', 'window', 'document', 'article', 'section', 'header', 'footer', 'content', 'title', 'image', 'video', 'audio', 'table', 'border', 'mobile', 'desktop', 'tablet', 'android', 'iphone', 'windows', 'linux', 'macos', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+    codePattern: /\b(\d{14}|[a-z]{8,15}|[A-Z]{6,15}|[A-Z][a-z0-9]{5,14})\b/g,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'undefined', 'error', 'success', 'failed', 'admin', 'login', 'logout', 'button', 'click', 'enter', 'submit', 'cancel', 'confirm', 'delete', 'update', 'create', 'twitter', 'youtube', 'discord', 'facebook', 'instagram', 'github', 'google', 'chrome', 'firefox', 'safari', 'january', 'february', 'march', 'april', 'august', 'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'forest', 'nights', 'roblox', 'games', 'please', 'thank', 'welcome', 'hello', 'world', 'server', 'client', 'player', 'cookie', 'session', 'script', 'function', 'return', 'console', 'window', 'document', 'article', 'section', 'header', 'footer', 'content', 'title', 'image', 'video', 'audio', 'table', 'border', 'mobile', 'desktop', 'tablet', 'android', 'iphone', 'windows', 'linux', 'macos', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'marvel', 'piece', 'doors', 'englishmiddle', 'brand', 'sensitive', 'pokemon', 'howlongtobeat', 'eurogamer', 'maxroll', 'global', 'authority', 'diamond', 'snapchat', 'spotify', 'apple', 'netflix', 'disney', 'anime', 'entertainment', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'over', 'such', 'even', 'most', 'other', 'these']
   },
   'growagarden': {
     name: 'Grow a Garden',
     searchQuery: 'Grow a Garden Roblox codes',
-    codePattern: /\b([A-Z]{4,15}|[a-z]{4,15}|[A-Za-z0-9]{5,15})\b/gi,
-    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'coins', 'gems', 'working', 'active', 'new', 'latest'],
-    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'grow', 'garden', 'play', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help']
+    codePattern: /\b([A-Z0-9]{6,8}|[A-Z]{6,10}|[a-z]{8,12})\b/g,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'coins', 'gems', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'grow', 'garden', 'play', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'discord', 'snapchat', 'spotify', 'apple', 'android', 'netflix', 'marvel', 'piece', 'disney', 'entertainment', 'paced', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also']
   },
   'fischit': {
     name: 'Fisch',
     searchQuery: 'Fisch Roblox codes',
-    codePattern: /\b([A-Z]{4,15}|[a-z]{4,15}|[A-Za-z0-9]{5,15})\b/gi,
-    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'cash', 'money', 'working', 'active', 'new', 'latest'],
-    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also']
+    codePattern: /\b([A-Z]{6,20}|[a-z]{8,15})\b/g,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'cash', 'money', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'over', 'such', 'even', 'most', 'other', 'these', 'discord', 'snapchat', 'spotify', 'apple', 'android', 'netflix', 'marvel', 'anime', 'piece', 'disney', 'tier', 'active', 'code', 'type', 'area', 'press', 'enter', 'input', 'redeem', 'world', 'free', 'acidic', 'mimic', 'carbon', 'englishmiddle', 'brand', 'entertainment', 'locations', 'location', 'news', 'lego', 'pokemon', 'borderlands', 'board', 'howlongtobeat', 'eurogamer', 'rock', 'maxroll']
   }
 };
 
