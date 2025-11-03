@@ -935,7 +935,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        await user.send('${'═'.repeat(50)}\n✅ Audit complete!');
+        await user.send(`${'═'.repeat(50)}\n✅ Audit complete!`);
       }
       
       console.log(`✅ Security audit completed for ${interaction.user.tag}`);
