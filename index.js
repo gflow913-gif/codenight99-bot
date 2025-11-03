@@ -441,6 +441,9 @@ async function registerCommands(clientId) {
       .setName('codes')
       .setDescription('View available codes for different games'),
     new SlashCommandBuilder()
+      .setName('post-menu')
+      .setDescription('Post the code menu in this channel (Server Owner only)'),
+    new SlashCommandBuilder()
       .setName('setup')
       .setDescription('Setup code notifications for your server (Server Owner only)')
       .addChannelOption(option =>
