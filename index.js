@@ -554,7 +554,10 @@ async function registerCommands(clientId) {
       .setDescription('Remove code notifications from your server (Server Owner only)'),
     new SlashCommandBuilder()
       .setName('help')
-      .setDescription('Show all available commands')
+      .setDescription('Show all available commands'),
+    new SlashCommandBuilder()
+      .setName('audit')
+      .setDescription('Audit server members with dangerous permissions (DMs you the results)')
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(CONFIG.DISCORD_TOKEN);
@@ -845,6 +848,106 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  // /audit - Audit dangerous permissions
+  if (commandName === 'audit') {
+    await interaction.reply({ content: '🔍 Scanning all servers for members with dangerous permissions...\nI will DM you the results shortly.', ephemeral: true });
+    
+    try {
+      const dangerousPermissions = [
+        'Administrator',
+        'ManageGuild',
+        'ManageRoles',
+        'ManageChannels',
+        'KickMembers',
+        'BanMembers',
+        'ManageWebhooks',
+        'ManageGuildExpressions',
+        'ViewAuditLog'
+      ];
+      
+      const results = [];
+      
+      for (const [guildId, guild] of client.guilds.cache) {
+        await guild.members.fetch();
+        
+        const dangerousMembers = [];
+        
+        for (const [memberId, member] of guild.members.cache) {
+          if (member.user.bot) continue;
+          
+          const memberPermissions = [];
+          
+          for (const permName of dangerousPermissions) {
+            if (member.permissions.has(permName)) {
+              memberPermissions.push(permName);
+            }
+          }
+          
+          if (memberPermissions.length > 0) {
+            dangerousMembers.push({
+              tag: member.user.tag,
+              id: member.user.id,
+              permissions: memberPermissions,
+              roles: member.roles.cache.filter(r => r.id !== guild.id).map(r => r.name).join(', ') || 'No roles'
+            });
+          }
+        }
+        
+        if (dangerousMembers.length > 0) {
+          results.push({
+            guildName: guild.name,
+            guildId: guild.id,
+            memberCount: guild.memberCount,
+            dangerousMembers
+          });
+        }
+      }
+      
+      // Send DM to user
+      const user = await client.users.fetch(interaction.user.id);
+      
+      if (results.length === 0) {
+        await user.send('✅ **Security Audit Complete**\n\nNo members with dangerous permissions found in any servers.');
+      } else {
+        await user.send(`🔐 **Security Audit Results**\n\nFound **${results.length}** server(s) with members having dangerous permissions:\n${'═'.repeat(50)}`);
+        
+        for (const result of results) {
+          const embed = new EmbedBuilder()
+            .setColor('#ff0000')
+            .setTitle(`🏰 ${result.guildName}`)
+            .setDescription(`Server ID: \`${result.guildId}\`\nTotal Members: **${result.memberCount}**\nMembers with Dangerous Permissions: **${result.dangerousMembers.length}**`)
+            .setTimestamp();
+          
+          for (const member of result.dangerousMembers.slice(0, 10)) {
+            const permList = member.permissions.map(p => `\`${p}\``).join(', ');
+            embed.addFields({
+              name: `👤 ${member.tag}`,
+              value: `**ID:** \`${member.id}\`\n**Permissions:** ${permList}\n**Roles:** ${member.roles}`,
+              inline: false
+            });
+          }
+          
+          if (result.dangerousMembers.length > 10) {
+            embed.setFooter({ text: `Showing 10 of ${result.dangerousMembers.length} members with dangerous permissions` });
+          }
+          
+          await user.send({ embeds: [embed] });
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        await user.send('${'═'.repeat(50)}\n✅ Audit complete!');
+      }
+      
+      console.log(`✅ Security audit completed for ${interaction.user.tag}`);
+      await interaction.followUp({ content: '✅ Audit complete! Check your DMs for the results.', ephemeral: true });
+      
+    } catch (error) {
+      console.error('❌ Error during audit:', error);
+      await interaction.followUp({ content: `❌ Error during audit: ${error.message}`, ephemeral: true });
+    }
+    return;
+  }
+
   // /help - Show commands
   if (commandName === 'help') {
     const embed = new EmbedBuilder()
@@ -860,6 +963,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `\`/check\` - Run manual scan for all games\n` +
             `\`/scan <url> <game>\` - Scan specific URL for codes\n` +
             `\`/unsetup\` - Remove auto notifications (owner only)\n` +
+            `\`/audit\` - Audit members with dangerous permissions (DMs you)\n` +
             `\`/help\` - Show this help message`,
           inline: false
         },
