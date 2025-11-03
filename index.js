@@ -134,12 +134,26 @@ function extractCodes(text, url, gameId) {
   
   // Check if page mentions expired codes - skip entirely if so
   const textLower = text.toLowerCase();
-  const expiredIndicators = ['expired', 'no longer valid', 'not working', 'outdated', 'removed'];
-  const hasExpiredWarning = expiredIndicators.some(indicator => textLower.includes(indicator));
+  const expiredIndicators = ['expired', 'no longer valid', 'not working', 'outdated', 'removed', 'old codes', 'inactive'];
+  const hasExpiredSection = expiredIndicators.some(indicator => textLower.includes(indicator));
   
   // Clean text: remove extra whitespace and normalize
   const cleanText = text.replace(/\s+/g, ' ').trim();
   const lines = cleanText.split(/[.!?\n]+/);
+  
+  // Extended common words to filter out
+  const extendedCommonWords = [
+    'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 
+    'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 
+    'make', 'over', 'such', 'even', 'most', 'other', 'these', 'about', 'when', 'what', 'which',
+    'their', 'would', 'there', 'could', 'first', 'after', 'where', 'before', 'through', 'during',
+    'each', 'being', 'those', 'both', 'either', 'between', 'under', 'since', 'without', 'another',
+    'should', 'might', 'while', 'still', 'never', 'always', 'every', 'until', 'though', 'against',
+    'review', 'reviews', 'gaming', 'games', 'codes', 'guide', 'guides', 'news', 'article', 'store',
+    'board', 'forum', 'wiki', 'fandom', 'community', 'official', 'latest', 'updated', 'version',
+    'download', 'install', 'website', 'online', 'platform', 'service', 'account', 'profile',
+    'settings', 'options', 'menu', 'search', 'filter', 'category', 'tags', 'share', 'comment'
+  ];
   
   for (const line of lines) {
     const lineLower = line.toLowerCase();
@@ -149,9 +163,10 @@ function extractCodes(text, url, gameId) {
       continue;
     }
     
-    // Must contain at least one keyword to be considered
-    const hasKeyword = game.keywords.some(keyword => lineLower.includes(keyword));
-    if (!hasKeyword) continue;
+    // Must contain at least TWO strong keywords to be considered
+    const strongKeywords = ['code', 'redeem', 'reward', 'gift', 'promo'];
+    const keywordCount = strongKeywords.filter(keyword => lineLower.includes(keyword)).length;
+    if (keywordCount < 1) continue;
     
     // Extract potential codes from this line
     const matches = line.match(game.codePattern) || [];
@@ -162,37 +177,47 @@ function extractCodes(text, url, gameId) {
       // Skip if blacklisted
       if (game.blacklist.includes(codeLower)) continue;
       
+      // Skip extended common words
+      if (extendedCommonWords.includes(codeLower)) continue;
+      
       // Skip if already found
       if (potentialCodes.includes(code)) continue;
       
-      // Skip if too short or too long
-      if (code.length < 4 || code.length > 15) continue;
+      // Stricter length requirements
+      if (code.length < 5 || code.length > 15) continue;
       
       // Skip if all same character (like "aaaaa")
       if (/^(.)\1+$/.test(code)) continue;
       
-      // Skip common words that slip through
-      const commonWords = ['more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'over', 'such', 'even', 'most', 'other', 'these', 'about'];
-      if (commonWords.includes(codeLower)) continue;
+      // Skip if it's a common English word pattern (vowel-consonant alternation)
+      if (/^[aeiou][^aeiou][aeiou][^aeiou]/i.test(code) && code.length < 8) continue;
       
-      // For non-numeric codes, check if it appears near strong code indicators
+      // For non-numeric codes, require VERY strong validation
       if (!/^\d+$/.test(code)) {
         const codeIndex = line.indexOf(code);
-        const nearContext = line.substring(Math.max(0, codeIndex - 50), Math.min(line.length, codeIndex + code.length + 50)).toLowerCase();
+        const nearContext = line.substring(Math.max(0, codeIndex - 60), Math.min(line.length, codeIndex + code.length + 60)).toLowerCase();
         
-        // Strong indicators that this is actually a code
-        const strongIndicators = ['redeem:', 'code:', 'enter', 'use code', 'promo:', 'gift:', 'reward:'];
-        const hasStrongIndicator = strongIndicators.some(indicator => nearContext.includes(indicator));
+        // Very strong indicators that this is actually a code
+        const veryStrongIndicators = ['code:', 'redeem:', 'enter code', 'use code', 'promo code:', 'gift code:', 'reward code:', 'copy code'];
+        const hasVeryStrongIndicator = veryStrongIndicators.some(indicator => nearContext.includes(indicator));
         
-        // If it's in a list format (e.g., "- CODE" or "• CODE")
-        const isInList = /[\-•*]\s*$/m.test(line.substring(Math.max(0, codeIndex - 5), codeIndex));
+        // If it's in a code list format (e.g., "- CODE" or "• CODE" or "1. CODE")
+        const isInCodeList = /[\-•*]\s*$|^\d+\.\s*/.test(line.substring(Math.max(0, codeIndex - 5), codeIndex));
         
-        // Skip if no strong indicators and not in a list
-        if (!hasStrongIndicator && !isInList) {
-          // Exception: if it's all caps and 5+ characters, it's likely a code
-          if (!/^[A-Z0-9]+$/.test(code) || code.length < 5) {
+        // Must have very strong indicator OR be in a clear code list
+        if (!hasVeryStrongIndicator && !isInCodeList) {
+          // Exception: if it's ALL CAPS, 6+ characters, and has numbers
+          if (!/^[A-Z0-9]+$/.test(code) || code.length < 6 || !/\d/.test(code)) {
             continue;
           }
+        }
+        
+        // Additional validation: must be mostly uppercase or have specific patterns
+        const uppercaseRatio = (code.match(/[A-Z]/g) || []).length / code.length;
+        const hasNumbers = /\d/.test(code);
+        
+        if (uppercaseRatio < 0.5 && !hasNumbers) {
+          continue; // Skip codes that are mostly lowercase without numbers
         }
       }
       
@@ -207,12 +232,21 @@ function extractCodes(text, url, gameId) {
 async function scrapeUrl(url, gameId) {
   try {
     console.log(`🔍 Scraping: ${url}`);
+    
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
       },
-      timeout: 10000
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.log(`⚠️ Failed to fetch ${url}: ${response.status}`);
@@ -222,12 +256,21 @@ async function scrapeUrl(url, gameId) {
     const html = await response.text();
     const $ = load(html);
     
-    $('script, style').remove();
-    const text = $('body').text();
+    // Remove scripts, styles, and navigation elements
+    $('script, style, nav, header, footer, .navigation, .menu, .sidebar, .ad, .advertisement').remove();
     
-    return extractCodes(text, url, gameId);
+    // Focus on main content areas
+    const contentAreas = $('main, article, .content, .post, .codes, .code-list, body').text();
+    
+    const codes = extractCodes(contentAreas, url, gameId);
+    
+    return codes;
   } catch (error) {
-    console.error(`❌ Error scraping ${url}:`, error.message);
+    if (error.name === 'AbortError') {
+      console.error(`❌ Timeout scraping ${url}`);
+    } else {
+      console.error(`❌ Error scraping ${url}:`, error.message);
+    }
     return [];
   }
 }
@@ -243,7 +286,7 @@ async function searchForCodes(gameId) {
   }
   
   try {
-    // Add date filter for last 15 days to get only recent content
+    // Search for codes with better query
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: {
@@ -251,9 +294,9 @@ async function searchForCodes(gameId) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        q: `${game.searchQuery} (after:${getDateDaysAgo(15)})`,
-        num: 10,
-        tbs: 'qdr:m' // Filter to last month for extra freshness
+        q: `"${game.searchQuery}" "working codes" OR "active codes" 2025`,
+        num: 15,
+        tbs: 'qdr:w' // Filter to last week for freshness
       })
     });
     
@@ -270,27 +313,50 @@ async function searchForCodes(gameId) {
       return [];
     }
     
-    console.log(`📋 Found ${data.organic.length} search results for ${game.name} (filtered to last 15 days)`);
+    console.log(`📋 Found ${data.organic.length} search results for ${game.name}`);
     
-    // Filter results to only include those with recent dates in snippet or published date
-    const recentResults = data.organic.filter(result => {
-      // Check if result has publication date info
-      if (result.date) {
-        const resultDate = new Date(result.date);
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - 15);
-        return resultDate >= cutoffDate;
+    // Blacklist unreliable domains that often block scraping or have low-quality content
+    const blockedDomains = ['sourceforge.net', 'mmojugg.com', 'facebook.com', 'tiktok.com', 'pinterest.com', 'reddit.com'];
+    
+    // Filter and prioritize reliable gaming sites
+    const trustedSites = ['ign.com', 'pcgamer.com', 'gamerant.com', 'thegamer.com', 'destructoid.com', 'polygon.com', 'eurogamer.net', 'rockpapershotgun.com', 'kotaku.com', 'fandom.com'];
+    
+    const filteredResults = data.organic.filter(result => {
+      const url = result.link.toLowerCase();
+      
+      // Skip blocked domains
+      if (blockedDomains.some(domain => url.includes(domain))) {
+        console.log(`   ⏭️ Skipping blocked domain: ${result.link}`);
+        return false;
       }
-      return true; // Include if no date info available
+      
+      // Skip if title/snippet suggests it's not about codes
+      const combined = (result.title + ' ' + (result.snippet || '')).toLowerCase();
+      if (!combined.includes('code') && !combined.includes('redeem')) {
+        return false;
+      }
+      
+      return true;
     });
     
-    const topResults = recentResults.slice(0, 5);
+    // Prioritize trusted sites first
+    const prioritizedResults = [
+      ...filteredResults.filter(r => trustedSites.some(site => r.link.toLowerCase().includes(site))),
+      ...filteredResults.filter(r => !trustedSites.some(site => r.link.toLowerCase().includes(site)))
+    ];
+    
+    const topResults = prioritizedResults.slice(0, 5);
+    console.log(`📊 Scraping ${topResults.length} filtered results`);
+    
     const allCodes = [];
     
     for (const result of topResults) {
       if (result.link) {
         console.log(`   🔗 Scraping: ${result.title}`);
         const codes = await scrapeUrl(result.link, gameId);
+        if (codes.length > 0) {
+          console.log(`      ✨ Found ${codes.length} potential code(s)`);
+        }
         allCodes.push(...codes);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
