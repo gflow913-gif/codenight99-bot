@@ -1,33 +1,41 @@
-# 99 Nights in Forest - Discord Code Scraper Bot
+# Multi-Game Roblox Code Scraper Bot
 
 ## Overview
-A Discord bot built with Node.js that automatically searches the web for new "99 Nights in Forest" (Roblox game) redeem codes and notifies users via Discord when new codes are discovered. The bot uses Serper.dev Google Search API to find relevant URLs, then scrapes those pages with Cheerio to extract codes. Designed to be standalone and portable for hosting on platforms like Replit.
+A Discord bot built with Node.js that automatically searches the web for Roblox game redeem codes and notifies users via Discord when new codes are discovered. The bot uses Serper.dev Google Search API to find relevant URLs, then scrapes those pages with Cheerio to extract codes. Features an interactive UI with ephemeral (private) responses for individual code viewing. Designed to be standalone and portable for hosting on any platform.
 
 ## Current State
 - **Status**: Fully functional and ready for deployment
 - **Created**: November 2, 2025
+- **Last Updated**: November 3, 2025
 - **Language**: Node.js (ES Modules)
 - **Main File**: `index.js`
-- **Game**: 99 Nights in Forest (Roblox)
+- **Supported Games**: 5 Roblox games
 
 ## Recent Changes
+- November 3, 2025: Major UI update with interactive commands and new games
+  - **Added 2 new games**: Blox Fruits and Steal a Brainrot (now 5 total games)
+  - **Added `/codes` command** with interactive select menu for private code viewing
+  - **Made all code responses ephemeral** (only visible to requesting user)
+  - Updated `/scan` command to use embeds and ephemeral responses
+  - Updated `/help` command to use rich embeds with ephemeral responses
+  - Added game emojis for better visual identification
+  - Improved UX with select menu that disappears after selection
+  - All commands updated to support all 5 games
+
 - November 2, 2025: Project migrated to Replit environment with multi-server support
   - Created Discord bot with discord.js v14
   - Implemented Serper.dev Google Search API for reliable code discovery
   - Added web scraping with cheerio for code extraction
-  - Added code extraction with regex pattern `/([A-Z0-9]{5,15})/g`
   - Implemented persistent storage in `codes.json` for duplicate prevention
-  - **Updated scan interval to 1 hour** (from 3 hours) for faster code discovery
+  - **Updated scan interval to 1 hour** for faster code discovery
   - **Added multi-server support** with `servers.json` configuration storage
-  - **Added `/thought` command** for server owners to set up their own notifications
-  - Added permission checking (server owner only for `/thought`)
+  - **Added `/setup` command** for server owners to configure notifications
+  - Added permission checking (server owner only for `/setup`)
   - Updated notification system to support multiple servers simultaneously
   - Added automatic scanning (startup + every 1 hour)
   - Added manual scan trigger via `/check` slash command
-  - Configured Discord notifications (channel + DM)
   - Added `/scan <url>` slash command for user-requested URL scanning
-  - Added `/help` slash command to show all available commands
-  - Improved message formatting (cleaner, numbered code lists)
+  - Added `/unsetup` command to remove notifications
   - All environment variables properly configured (DISCORD_TOKEN, CHANNEL_ID, USER_ID, GUILD_ID, SESSION_SECRET, SERPER_KEY)
 
 ## Project Architecture
@@ -40,18 +48,22 @@ A Discord bot built with Node.js that automatically searches the web for new "99
 - **Notifications**: Discord channel posts + user DMs
 
 ### Key Features
-1. Automated Google search using Serper.dev API for reliable results
-2. HTML parsing with cheerio to extract codes from top 5 search results
-3. Smart code detection with context validation (keywords: Code, Reward, Gift)
-4. Duplicate prevention via persistent storage in `codes.json`
-5. **Multi-server support** - Server owners can configure their own channels
-6. **Scheduled scanning (1-hour intervals)** for faster code discovery
-7. Discord integration for notifications (main channel + DM + all configured servers)
-8. Server owner permission system for `/thought` command
-9. Manual scan trigger slash command (`/check`)
-10. User-friendly URL scanning slash command (`/scan <url>`)
-11. Server setup slash command (`/thought`) for server owners
-12. Help slash command for command list (`/help`)
+1. **5 Supported Games**: 99 Nights in the Forest, Grow a Garden, Fisch, Blox Fruits, Steal a Brainrot
+2. **Interactive Code Viewing**: `/codes` command with select menu for private code viewing
+3. **Ephemeral Responses**: All code displays are private (only visible to requesting user)
+4. Automated Google search using Serper.dev API for reliable results
+5. HTML parsing with cheerio to extract codes from top 5 search results
+6. Smart code detection with context validation (keywords: Code, Reward, Gift)
+7. Duplicate prevention via persistent storage in `codes.json`
+8. **Multi-server support** - Server owners can configure their own channels
+9. **Scheduled scanning (1-hour intervals)** for faster code discovery
+10. Discord integration for notifications (main channel + all configured servers)
+11. Server owner permission system for `/setup` command
+12. Manual scan trigger slash command (`/check`)
+13. User-friendly URL scanning slash command (`/scan <url> <game>`)
+14. Server setup slash command (`/setup`) for server owners
+15. Rich embed help command (`/help`) with all features explained
+16. Game emojis for visual identification (🌲 🌺 🎣 🍇 🧠)
 
 ### Dependencies
 - `discord.js` (^14.15.3) - Discord bot framework
