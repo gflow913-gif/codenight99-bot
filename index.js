@@ -1,5 +1,5 @@
 
-import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, EmbedBuilder } from 'discord.js';
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -8,6 +8,7 @@ import fs from 'fs';
 const GAMES = {
   '99nights': {
     name: '99 Nights in the Forest',
+    emoji: '🌲',
     searchQuery: '99 Nights in Forest codes',
     codePattern: /\b(\d{14}|[a-z]{8,15}|[A-Z]{6,15}|[A-Z][a-z0-9]{5,14})\b/g,
     keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'coupon', 'free', 'diamonds', 'gems', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
@@ -15,6 +16,7 @@ const GAMES = {
   },
   'growagarden': {
     name: 'Grow a Garden',
+    emoji: '🌺',
     searchQuery: 'Grow a Garden Roblox codes',
     codePattern: /\b([A-Z0-9]{6,8}|[A-Z]{6,10}|[a-z]{8,12})\b/g,
     keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'coins', 'gems', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
@@ -22,10 +24,27 @@ const GAMES = {
   },
   'fischit': {
     name: 'Fisch',
+    emoji: '🎣',
     searchQuery: 'Fisch Roblox codes',
     codePattern: /\b([A-Z]{6,20}|[a-z]{8,15})\b/g,
     keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'cash', 'money', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
     blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'fish', 'fisch', 'fishing', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'over', 'such', 'even', 'most', 'other', 'these', 'discord', 'snapchat', 'spotify', 'apple', 'android', 'netflix', 'marvel', 'anime', 'piece', 'disney', 'tier', 'active', 'code', 'type', 'area', 'press', 'enter', 'input', 'redeem', 'world', 'free', 'acidic', 'mimic', 'carbon', 'englishmiddle', 'brand', 'entertainment', 'locations', 'location', 'news', 'lego', 'pokemon', 'borderlands', 'board', 'howlongtobeat', 'eurogamer', 'rock', 'maxroll']
+  },
+  'bloxfruits': {
+    name: 'Blox Fruits',
+    emoji: '🍇',
+    searchQuery: 'Blox Fruits codes',
+    codePattern: /\b([A-Z]{4,20}|[A-Z][a-z0-9_]{5,19}|SUB2[A-Z0-9]+|[A-Z0-9_]{6,20})\b/g,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'exp', 'beli', 'reset', 'boost', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'undefined', 'roblox', 'game', 'blox', 'fruits', 'fruit', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'discord', 'twitter', 'youtube', 'facebook', 'instagram', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also', 'like', 'just', 'know', 'take', 'into', 'year', 'good', 'make', 'update', 'create', 'delete', 'player', 'server', 'client']
+  },
+  'stealabrainrot': {
+    name: 'Steal a Brainrot',
+    emoji: '🧠',
+    searchQuery: 'Steal a Brainrot codes',
+    codePattern: /\b([A-Z]{5,12}|[A-Z][a-z]{4,11}|[A-Z0-9]{6,12})\b/g,
+    keywords: ['code', 'reward', 'gift', 'redeem', 'promo', 'free', 'brainrot', 'cash', 'money', 'working', 'active', 'new', 'latest', 'valid', 'expired'],
+    blacklist: ['http', 'https', 'false', 'true', 'null', 'roblox', 'game', 'steal', 'brainrot', 'about', 'contact', 'privacy', 'terms', 'policy', 'support', 'help', 'discord', 'more', 'that', 'this', 'with', 'from', 'have', 'been', 'your', 'them', 'here', 'then', 'some', 'time', 'only', 'also']
   }
 };
 
@@ -419,6 +438,9 @@ async function sendNotifications(newCodesByGame) {
 async function registerCommands(clientId) {
   const commands = [
     new SlashCommandBuilder()
+      .setName('codes')
+      .setDescription('View available codes for different games'),
+    new SlashCommandBuilder()
       .setName('setup')
       .setDescription('Setup code notifications for your server (Server Owner only)')
       .addChannelOption(option =>
@@ -433,6 +455,8 @@ async function registerCommands(clientId) {
             { name: '99 Nights in the Forest', value: '99nights' },
             { name: 'Grow a Garden', value: 'growagarden' },
             { name: 'Fisch', value: 'fischit' },
+            { name: 'Blox Fruits', value: 'bloxfruits' },
+            { name: 'Steal a Brainrot', value: 'stealabrainrot' },
             { name: 'All Games', value: 'all' }
           )),
     new SlashCommandBuilder()
@@ -452,7 +476,9 @@ async function registerCommands(clientId) {
           .addChoices(
             { name: '99 Nights in the Forest', value: '99nights' },
             { name: 'Grow a Garden', value: 'growagarden' },
-            { name: 'Fisch', value: 'fischit' }
+            { name: 'Fisch', value: 'fischit' },
+            { name: 'Blox Fruits', value: 'bloxfruits' },
+            { name: 'Steal a Brainrot', value: 'stealabrainrot' }
           )),
     new SlashCommandBuilder()
       .setName('unsetup')
@@ -491,9 +517,85 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 // Handle slash commands
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu()) return;
+
+  // Handle select menu interactions
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === 'game_select') {
+      const selectedGame = interaction.values[0];
+      const game = GAMES[selectedGame];
+      const storedCodes = loadStoredCodes();
+      const gameCodes = storedCodes[selectedGame] || [];
+
+      if (gameCodes.length === 0) {
+        await interaction.update({
+          content: `${game.emoji} **${game.name}**\n\n❌ No codes available yet for this game.\nThe bot will automatically scan for codes every hour!`,
+          components: []
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle(`${game.emoji} ${game.name} - Codes`)
+        .setDescription(`Found **${gameCodes.length}** code${gameCodes.length > 1 ? 's' : ''}`)
+        .setFooter({ text: 'Codes are automatically updated every hour' })
+        .setTimestamp();
+
+      const codeList = gameCodes.slice(0, 25).map((c, i) => {
+        const foundDate = new Date(c.foundAt).toLocaleDateString();
+        return `**${i + 1}.** \`${c.code}\` *(Found: ${foundDate})*`;
+      }).join('\n');
+
+      embed.addFields({
+        name: '📋 Available Codes',
+        value: codeList || 'No codes available',
+        inline: false
+      });
+
+      if (gameCodes.length > 25) {
+        embed.addFields({
+          name: '⚠️ Note',
+          value: `Showing 25 of ${gameCodes.length} codes. More codes available!`,
+          inline: false
+        });
+      }
+
+      await interaction.update({
+        content: '',
+        embeds: [embed],
+        components: []
+      });
+    }
+    return;
+  }
 
   const { commandName } = interaction;
+
+  // /codes - Show game selection menu
+  if (commandName === 'codes') {
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('game_select')
+      .setPlaceholder('🎮 Select a game to view codes')
+      .addOptions(
+        Object.entries(GAMES).map(([id, game]) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(game.name)
+            .setDescription(`View codes for ${game.name}`)
+            .setValue(id)
+            .setEmoji(game.emoji)
+        )
+      );
+
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+
+    await interaction.reply({
+      content: '## 🎮 Select a Game\n\nChoose which game\'s codes you want to view:',
+      components: [row],
+      ephemeral: true
+    });
+    return;
+  }
 
   // /setup - Configure server with game selection
   if (commandName === 'setup') {
@@ -580,7 +682,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const gameId = interaction.options.getString('game');
     
     if (!url.startsWith('http')) {
-      await interaction.reply('❌ Please provide a valid URL starting with http:// or https://');
+      await interaction.reply({ 
+        content: '❌ Please provide a valid URL starting with http:// or https://', 
+        ephemeral: true 
+      });
       return;
     }
     
@@ -588,21 +693,40 @@ client.on(Events.InteractionCreate, async (interaction) => {
     console.log(`\n🔗 URL scan requested by ${interaction.user.tag}: ${url} (${game.name})`);
     
     try {
-      await interaction.reply(`🔍 Scanning URL for ${game.name} codes...\n${url}`);
+      await interaction.reply({ 
+        content: `${game.emoji} **Scanning URL for ${game.name} codes...**\n\n🔗 ${url}\n\n⏳ Please wait...`, 
+        ephemeral: true 
+      });
       
       const foundCodes = await scrapeUrl(url, gameId);
       
       if (foundCodes.length > 0) {
-        const codeList = foundCodes.map((c, index) => `${index + 1}. \`${c.code}\``).join('\n');
-        const response = `✅ **Found ${foundCodes.length} ${game.name} code${foundCodes.length > 1 ? 's' : ''}!**\n\n${codeList}`;
-        await interaction.followUp(response);
+        const embed = new EmbedBuilder()
+          .setColor('#00ff00')
+          .setTitle(`${game.emoji} ${game.name} - Scan Results`)
+          .setDescription(`Found **${foundCodes.length}** code${foundCodes.length > 1 ? 's' : ''}!`)
+          .addFields({
+            name: '📋 Codes Found',
+            value: foundCodes.map((c, index) => `**${index + 1}.** \`${c.code}\``).join('\n'),
+            inline: false
+          })
+          .setFooter({ text: 'Codes from: ' + url.substring(0, 100) })
+          .setTimestamp();
+
+        await interaction.followUp({ embeds: [embed], ephemeral: true });
         console.log(`✅ Found ${foundCodes.length} code(s) from user-provided URL`);
       } else {
-        await interaction.followUp(`📭 No ${game.name} codes found on this URL.\n*Tip: Make sure the page contains codes with relevant keywords*`);
+        await interaction.followUp({ 
+          content: `${game.emoji} **${game.name}**\n\n📭 No codes found on this URL.\n\n💡 *Tip: Make sure the page contains codes with relevant keywords*`, 
+          ephemeral: true 
+        });
         console.log('⚠️ No codes found from user-provided URL');
       }
     } catch (error) {
-      await interaction.followUp(`❌ Error scanning URL: ${error.message}`);
+      await interaction.followUp({ 
+        content: `❌ **Error scanning URL:**\n\`\`\`${error.message}\`\`\``, 
+        ephemeral: true 
+      });
       console.error(`❌ Error scanning user-provided URL: ${error.message}`);
     }
     return;
@@ -654,18 +778,45 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // /help - Show commands
   if (commandName === 'help') {
-    const helpMessage = `🤖 **Multi-Game Code Scraper Bot - Commands**\n\n` +
-      `\`/setup\` - Setup notifications for your server with game selection (server owner only)\n` +
-      `\`/check\` - Run manual scan for all configured games (anyone can use)\n` +
-      `\`/scan <url> <game>\` - Scan a specific URL for codes (anyone can use)\n` +
-      `\`/unsetup\` - Remove notifications from your server (server owner only)\n` +
-      `\`/help\` - Show this help message\n\n` +
-      `🎮 **Supported Games:**\n` +
-      `• 99 Nights in the Forest\n` +
-      `• Grow a Garden\n` +
-      `• Fisch\n\n` +
-      `⏰ **Auto Scan:** Every 1 hour for all configured games`;
-    await interaction.reply(helpMessage);
+    const embed = new EmbedBuilder()
+      .setColor('#0099ff')
+      .setTitle('🤖 Multi-Game Code Scraper Bot')
+      .setDescription('Automatically finds and tracks game codes!')
+      .addFields(
+        {
+          name: '📋 Commands',
+          value: 
+            `\`/codes\` - **View available codes** (select from menu)\n` +
+            `\`/setup\` - Setup auto notifications for your server (owner only)\n` +
+            `\`/check\` - Run manual scan for all games\n` +
+            `\`/scan <url> <game>\` - Scan specific URL for codes\n` +
+            `\`/unsetup\` - Remove auto notifications (owner only)\n` +
+            `\`/help\` - Show this help message`,
+          inline: false
+        },
+        {
+          name: '🎮 Supported Games',
+          value: 
+            `${GAMES['99nights'].emoji} 99 Nights in the Forest\n` +
+            `${GAMES['growagarden'].emoji} Grow a Garden\n` +
+            `${GAMES['fischit'].emoji} Fisch\n` +
+            `${GAMES['bloxfruits'].emoji} Blox Fruits\n` +
+            `${GAMES['stealabrainrot'].emoji} Steal a Brainrot`,
+          inline: false
+        },
+        {
+          name: '⚡ How It Works',
+          value: 
+            `• **Auto Scan:** Searches web every hour for new codes\n` +
+            `• **Private Viewing:** Use \`/codes\` to view codes privately (only you can see)\n` +
+            `• **Auto Notifications:** Setup with \`/setup\` to get updates in your channel`,
+          inline: false
+        }
+      )
+      .setFooter({ text: 'All code responses are private and only visible to you!' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed], ephemeral: true });
     return;
   }
 });
